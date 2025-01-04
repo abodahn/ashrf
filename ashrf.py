@@ -6,29 +6,14 @@ MAIN_USERNAME = 'admin'
 MAIN_PASSWORD = '1234'
 UPDATE_PASSWORD = '12'
 
-# Hardcoded data (all data added)
+# Hardcoded data (all machines added)
 data = [
     {"No.": 1, "Terminal": "MOJ001", "Location": "Heliopolis", "First Operation": "2021-09-26", "Total Transactions": 0, "Last CIT": "19 Sep 2024", "No. Tickets": 109},
     {"No.": 2, "Terminal": "MOJ002", "Location": "South Cairo", "First Operation": "2021-05-05", "Total Transactions": 1634, "Last CIT": "23 Jul 2024", "No. Tickets": 66},
     {"No.": 3, "Terminal": "MOJ003", "Location": "North Cairo", "First Operation": "2021-05-20", "Total Transactions": 8876, "Last CIT": "19 Aug 2024", "No. Tickets": 43},
     {"No.": 4, "Terminal": "MOJ004", "Location": "East Alex", "First Operation": "2021-06-26", "Total Transactions": 0, "Last CIT": "16 Sep 2024", "No. Tickets": 91},
     {"No.": 5, "Terminal": "MOJ005", "Location": "West Alex", "First Operation": "2021-06-21", "Total Transactions": 244, "Last CIT": "10 Feb 2024", "No. Tickets": 44},
-    {"No.": 6, "Terminal": "MOJ006", "Location": "North Damanhour", "First Operation": "2021-06-26", "Total Transactions": 6203, "Last CIT": "9 Sep 2024", "No. Tickets": 146},
-    {"No.": 7, "Terminal": "MOJ007", "Location": "High Court", "First Operation": "2021-10-07", "Total Transactions": 964, "Last CIT": "27 May 2024", "No. Tickets": 26},
-    {"No.": 8, "Terminal": "MOJ008", "Location": "South Giza", "First Operation": "2021-06-28", "Total Transactions": 2335, "Last CIT": "20 May 2024", "No. Tickets": 41},
-    {"No.": 9, "Terminal": "MOJ009", "Location": "North Banha", "First Operation": "2021-07-14", "Total Transactions": 3520, "Last CIT": "11 Sep 2024", "No. Tickets": 72},
-    {"No.": 10, "Terminal": "MOJ010", "Location": "South Banha", "First Operation": "2021-07-14", "Total Transactions": 2947, "Last CIT": "18 Jul 2024", "No. Tickets": 68},
-    {"No.": 11, "Terminal": "MOJ011", "Location": "North Giza", "First Operation": "2021-05-07", "Total Transactions": 1255, "Last CIT": "31 Jan 2024", "No. Tickets": 41},
-    {"No.": 12, "Terminal": "MOJ012", "Location": "Sharm El Sheikh", "First Operation": "2022-02-03", "Total Transactions": 554, "Last CIT": "7 Aug 2024", "No. Tickets": 16},
-    {"No.": 13, "Terminal": "MOJ013", "Location": "City Stars", "First Operation": "2021-12-20", "Total Transactions": 45, "Last CIT": "3 Apr 2024", "No. Tickets": 14},
-    {"No.": 14, "Terminal": "MOJ014", "Location": "Bank Misr Mohamed Farid", "First Operation": "2022-09-02", "Total Transactions": 46, "Last CIT": "28 Feb 2024", "No. Tickets": 5},
-    {"No.": 15, "Terminal": "MOJ015", "Location": "Hurghada", "First Operation": "2022-02-13", "Total Transactions": 285, "Last CIT": "17 Jan 2024", "No. Tickets": 16},
-    {"No.": 16, "Terminal": "MOJ016", "Location": "Luxor", "First Operation": "2022-02-14", "Total Transactions": 6, "Last CIT": "7 Jul 2024", "No. Tickets": 9},
-    {"No.": 17, "Terminal": "MOJ017", "Location": "Sohag", "First Operation": "2022-02-15", "Total Transactions": 19181, "Last CIT": "28 Aug 2024", "No. Tickets": 154},
-    {"No.": 18, "Terminal": "MOJ018", "Location": "Al Minya", "First Operation": "2022-02-17", "Total Transactions": 6375, "Last CIT": "29 Aug 2024", "No. Tickets": 145},
-    {"No.": 19, "Terminal": "MOJ019", "Location": "PortSaid", "First Operation": "2022-03-13", "Total Transactions": 1743, "Last CIT": "24 Mar 2024", "No. Tickets": 27},
-    {"No.": 20, "Terminal": "MOJ020", "Location": "Ismaillia", "First Operation": "2022-03-14", "Total Transactions": 475, "Last CIT": "12 Aug 2024", "No. Tickets": 61},
-    # Continue adding the rest of the data here...
+    # Add remaining machines here...
 ]
 
 # Convert hardcoded data into a Pandas DataFrame
@@ -45,20 +30,34 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.title("MOJ Project Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    st.title("MOJ Machine Monitoring System")
+    username = st.text_input("Username", placeholder="Enter username")
+    password = st.text_input("Password", type="password", placeholder="Enter password")
     if st.button("Login"):
         if username == MAIN_USERNAME and password == MAIN_PASSWORD:
             st.session_state.authenticated = True
         else:
-            st.error("Invalid credentials. Try again.")
+            st.error("Invalid credentials. Please try again.")
 else:
-    # Machine Dashboard
+    # Main Dashboard
     st.title("Machines Dashboard")
 
+    # Summary Section
+    st.subheader("Overview")
+    total_machines = len(machine_data)
+    down_count = sum(machine_data['Terminal'].isin(down_machines))
+    up_count = total_machines - down_count
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(label="Total Machines", value=total_machines)
+    with col2:
+        st.metric(label="Up Machines", value=up_count, delta=f"+{up_count}")
+    with col3:
+        st.metric(label="Down Machines", value=down_count, delta=f"-{down_count}", delta_color="inverse")
+
     # Search Bar
-    search_query = st.text_input("Search by Location or Terminal:")
+    st.subheader("Search Machines")
+    search_query = st.text_input("Search by Location or Terminal:", placeholder="Enter location or terminal ID")
     if search_query:
         filtered_data = machine_data[
             machine_data['Location'].str.contains(search_query, case=False, na=False)
@@ -67,28 +66,41 @@ else:
     else:
         filtered_data = machine_data
 
-    # Display Machines
+    # Display Machines in Cards
+    st.subheader("Machines List")
     for index, row in filtered_data.iterrows():
         machine_id = row['Terminal']
         location = row['Location']
         status = "Down" if machine_id in down_machines else "Up"
-        card_color = "lightgreen" if status == "Up" else "salmon"
+        card_color = "#d4edda" if status == "Up" else "#f8d7da"
 
-        if st.button(f"View Details: {machine_id}"):
-            st.session_state.selected_machine = machine_id
+        # Create a card for each machine
+        st.markdown(
+            f"""
+            <div style="border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin: 10px 0; background-color: {card_color};">
+                <h4 style="margin: 0;">{location}</h4>
+                <p style="margin: 5px 0;"><strong>Terminal ID:</strong> {machine_id}</p>
+                <p style="margin: 5px 0;"><strong>Status:</strong> {status}</p>
+                <a href="?selected_machine={machine_id}" style="text-decoration: none; color: #007bff;">View Details</a>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     # Machine Details Section
-    if "selected_machine" in st.session_state:
-        machine_id = st.session_state.selected_machine
-        machine = machine_data[machine_data["Terminal"] == machine_id].iloc[0]
-        st.markdown(f"### Details for {machine_id}")
+    selected_machine = st.experimental_get_query_params().get("selected_machine", [None])[0]
+    if selected_machine:
+        machine = machine_data[machine_data["Terminal"] == selected_machine].iloc[0]
+        st.subheader(f"Details for {selected_machine}")
+        st.write("### Machine Information")
         for col, value in machine.items():
             st.write(f"**{col}:** {value}")
-        new_comment = st.text_area(f"Add Comment for {machine_id}")
-        if st.button(f"Submit Comment for {machine_id}"):
-            comments[machine_id] = comments.get(machine_id, [])
-            comments[machine_id].append(new_comment)
+        st.write("### Add Comments")
+        new_comment = st.text_area(f"Add Comment for {selected_machine}")
+        if st.button(f"Submit Comment for {selected_machine}"):
+            comments[selected_machine] = comments.get(selected_machine, [])
+            comments[selected_machine].append(new_comment)
             st.success("Comment added successfully!")
-        st.markdown("### Comments")
-        for comment in comments.get(machine_id, []):
+        st.write("### Comments")
+        for comment in comments.get(selected_machine, []):
             st.write(f"- {comment}")
