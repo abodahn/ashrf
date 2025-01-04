@@ -40,20 +40,32 @@ if st.session_state.page == "dashboard":
     col2.metric("Up Machines", up, delta=f"+{up}")
     col3.metric("Down Machines", down, delta=f"-{down}", delta_color="inverse")
 
+    # Search Bar
+    st.subheader("Search Machines")
+    search_query = st.text_input("Search by Location or Terminal:")
+    if search_query:
+        filtered_data = machine_data[
+            machine_data['Location'].str.contains(search_query, case=False, na=False)
+            | machine_data['Terminal'].str.contains(search_query, case=False, na=False)
+        ]
+    else:
+        filtered_data = machine_data
+
     # Machines Grid
     st.subheader("Machine List")
     cols = st.columns(4)
-    for index, row in machine_data.iterrows():
+    for index, row in filtered_data.iterrows():
         col = cols[index % 4]
         card_color = "#d4edda" if row["Terminal"] not in down_machines else "#f8d7da"
+        border_color = "red" if row["Terminal"] in down_machines else "#ccc"
         with col:
             st.markdown(
                 f"""
-                <div style="border: 1px solid #ccc; border-radius: 8px; padding: 10px; background-color: {card_color};">
+                <div style="border: 2px solid {border_color}; border-radius: 8px; padding: 10px; background-color: {card_color};">
                     <strong>{row['Location']}</strong><br>
                     Terminal: {row['Terminal']}<br>
                     Status: {"Up" if row['Terminal'] not in down_machines else "Down"}<br>
-                    <button onclick="window.location.href='/?machine={row['Terminal']}'">View Details</button>
+                    <a href="#" onclick="window.location.href='/?machine={row['Terminal']}';">View Details</a>
                 </div>
                 """,
                 unsafe_allow_html=True,
