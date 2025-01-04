@@ -59,17 +59,9 @@ if st.session_state.page == "dashboard":
         card_color = "#d4edda" if row["Terminal"] not in down_machines else "#f8d7da"
         border_color = "red" if row["Terminal"] in down_machines else "#ccc"
         with col:
-            st.markdown(
-                f"""
-                <div style="border: 2px solid {border_color}; border-radius: 8px; padding: 10px; background-color: {card_color};">
-                    <strong>{row['Location']}</strong><br>
-                    Terminal: {row['Terminal']}<br>
-                    Status: {"Up" if row['Terminal'] not in down_machines else "Down"}<br>
-                    <a href="#" onclick="window.location.href='/?machine={row['Terminal']}';">View Details</a>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            if st.button(f"View {row['Terminal']}", key=f"details_{row['Terminal']}"):
+                st.session_state.page = "details"
+                st.session_state.selected_machine = row["Terminal"]
 
 # Details Page
 if st.session_state.page == "details":
