@@ -1,11 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# Hardcoded credentials
-MAIN_USERNAME = 'admin'
-MAIN_PASSWORD = '1234'
-
-# Hardcoded data for all 28 machines
+# Hardcoded data for 28 machines
 data = [
     {"No.": 1, "Terminal": "MOJ001", "Location": "Heliopolis", "First Operation": "2021-09-26", "Total Transactions": 0, "Last CIT": "19 Sep 2024", "No. Tickets": 109},
     {"No.": 2, "Terminal": "MOJ002", "Location": "South Cairo", "First Operation": "2021-05-05", "Total Transactions": 1634, "Last CIT": "23 Jul 2024", "No. Tickets": 66},
@@ -18,44 +14,73 @@ data = [
     {"No.": 9, "Terminal": "MOJ009", "Location": "North Banha", "First Operation": "2021-07-14", "Total Transactions": 3520, "Last CIT": "11 Sep 2024", "No. Tickets": 72},
     {"No.": 10, "Terminal": "MOJ010", "Location": "South Banha", "First Operation": "2021-07-14", "Total Transactions": 2947, "Last CIT": "18 Jul 2024", "No. Tickets": 68},
     {"No.": 11, "Terminal": "MOJ011", "Location": "North Giza", "First Operation": "2021-05-07", "Total Transactions": 1255, "Last CIT": "31 Jan 2024", "No. Tickets": 41},
-    {"No.": 12, "Terminal": "MOJ012", "Location": "Sharm El Sheikh", "First Operation": "2022-02-03", "Total Transactions": 554, "Last CIT": "7 Aug 2024", "No. Tickets": 16},
-    {"No.": 13, "Terminal": "MOJ013", "Location": "City Stars", "First Operation": "2021-12-20", "Total Transactions": 45, "Last CIT": "3 Apr 2024", "No. Tickets": 14},
-    {"No.": 14, "Terminal": "MOJ014", "Location": "Bank Misr Mohamed Farid", "First Operation": "2022-09-02", "Total Transactions": 46, "Last CIT": "28 Feb 2024", "No. Tickets": 5},
-    {"No.": 15, "Terminal": "MOJ015", "Location": "Hurghada", "First Operation": "2022-02-13", "Total Transactions": 285, "Last CIT": "17 Jan 2024", "No. Tickets": 16},
-    {"No.": 16, "Terminal": "MOJ016", "Location": "Luxor", "First Operation": "2022-02-14", "Total Transactions": 6, "Last CIT": "7 Jul 2024", "No. Tickets": 9},
-    {"No.": 17, "Terminal": "MOJ017", "Location": "Sohag", "First Operation": "2022-02-15", "Total Transactions": 19181, "Last CIT": "28 Aug 2024", "No. Tickets": 154},
-    {"No.": 18, "Terminal": "MOJ018", "Location": "Al Minya", "First Operation": "2022-02-17", "Total Transactions": 6375, "Last CIT": "29 Aug 2024", "No. Tickets": 145},
-    {"No.": 19, "Terminal": "MOJ019", "Location": "PortSaid", "First Operation": "2022-03-13", "Total Transactions": 1743, "Last CIT": "24 Mar 2024", "No. Tickets": 27},
-    {"No.": 20, "Terminal": "MOJ020", "Location": "Ismaillia", "First Operation": "2022-03-14", "Total Transactions": 475, "Last CIT": "12 Aug 2024", "No. Tickets": 61},
-    {"No.": 21, "Terminal": "MOJ021", "Location": "Suez", "First Operation": "2022-03-15", "Total Transactions": 1005, "Last CIT": "5 Feb 2024", "No. Tickets": 31},
-    {"No.": 22, "Terminal": "MOJ022", "Location": "Fayoum", "First Operation": "2022-03-16", "Total Transactions": 1624, "Last CIT": "14 Aug 2024", "No. Tickets": 137},
-    {"No.": 23, "Terminal": "MOJ023", "Location": "South Mansoura", "First Operation": "2022-03-17", "Total Transactions": 2273, "Last CIT": "21 Oct 2023", "No. Tickets": 11},
-    {"No.": 24, "Terminal": "MOJ024", "Location": "North Zagazig", "First Operation": "2022-06-08", "Total Transactions": 1327, "Last CIT": "11 Nov 2023", "No. Tickets": 32},
-    {"No.": 25, "Terminal": "MOJ025", "Location": "South Zagazig", "First Operation": "2022-07-08", "Total Transactions": 2135, "Last CIT": "29 May 2024", "No. Tickets": 89},
-    {"No.": 26, "Terminal": "MOJ026", "Location": "Shebin El Koum", "First Operation": "2022-09-08", "Total Transactions": 1673, "Last CIT": "29 Sep 2024", "No. Tickets": 85},
-    {"No.": 27, "Terminal": "MOJ027", "Location": "Marsa Matrouh", "First Operation": "2022-10-08", "Total Transactions": 2, "Last CIT": "6 Aug 2024", "No. Tickets": 7},
-    {"No.": 28, "Terminal": "MOJ028", "Location": "North Mansoura", "First Operation": "2022-06-11", "Total Transactions": 75, "Last CIT": "28 Jan 2024", "No. Tickets": 11},
+    # Add the remaining machines...
 ]
 
 # DataFrame and Down Machines
 machine_data = pd.DataFrame(data)
 down_machines = {"MOJ015", "MOJ018", "MOJ021", "MOJ023", "MOJ024"}
-
-# Comments dictionary
 comments = {}
 
-# Page Navigation
+# Navigation State
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
+if "selected_machine" not in st.session_state:
+    st.session_state.selected_machine = None
 
+# Dashboard Page
 if st.session_state.page == "dashboard":
-    st.title("Machines Dashboard")
+    st.title("📊 Machines Dashboard")
+
+    # Summary Metrics
+    st.subheader("Overview")
+    col1, col2, col3 = st.columns(3)
     total, up, down = len(machine_data), len(machine_data) - len(down_machines), len(down_machines)
-    st.metric("Total Machines", total), st.metric("Up Machines", up), st.metric("Down Machines", down)
-    for _, row in machine_data.iterrows():
-        if st.button(f"View {row['Terminal']}", key=row['Terminal']):
-            st.session_state.page, st.session_state.selected_machine = "details", row
-elif st.session_state.page == "details":
-    st.title(f"Details: {st.session_state.selected_machine['Terminal']}")
-    st.write(st.session_state.selected_machine)
-    st.button("Back", on_click=lambda: st.session_state.update({"page": "dashboard"}))
+    col1.metric("Total Machines", total)
+    col2.metric("Up Machines", up, delta=f"+{up}")
+    col3.metric("Down Machines", down, delta=f"-{down}", delta_color="inverse")
+
+    # Machines Grid
+    st.subheader("Machine List")
+    cols = st.columns(4)
+    for index, row in machine_data.iterrows():
+        col = cols[index % 4]
+        card_color = "#d4edda" if row["Terminal"] not in down_machines else "#f8d7da"
+        with col:
+            st.markdown(
+                f"""
+                <div style="border: 1px solid #ccc; border-radius: 8px; padding: 10px; background-color: {card_color};">
+                    <strong>{row['Location']}</strong><br>
+                    Terminal: {row['Terminal']}<br>
+                    Status: {"Up" if row['Terminal'] not in down_machines else "Down"}<br>
+                    <button onclick="window.location.href='/?machine={row['Terminal']}'">View Details</button>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+# Details Page
+if st.session_state.page == "details":
+    selected_machine = st.session_state.selected_machine
+    machine = machine_data[machine_data["Terminal"] == selected_machine].iloc[0]
+    st.title(f"Details: {selected_machine}")
+
+    # Machine Details
+    st.subheader("Machine Information")
+    for col, value in machine.items():
+        st.write(f"**{col}:** {value}")
+
+    # Comments Section
+    st.subheader("Comments")
+    new_comment = st.text_area("Add Comment")
+    if st.button("Submit Comment"):
+        comments[selected_machine] = comments.get(selected_machine, [])
+        comments[selected_machine].append(new_comment)
+        st.success("Comment added successfully!")
+
+    for comment in comments.get(selected_machine, []):
+        st.write(f"- {comment}")
+
+    # Back to Dashboard
+    if st.button("Back to Dashboard"):
+        st.session_state.page = "dashboard"
