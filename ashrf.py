@@ -14,7 +14,11 @@ data = [
     {"No.": 9, "Terminal": "MOJ009", "Location": "North Banha", "First Operation": "2021-07-14", "Total Transactions": 3520, "Last CIT": "11 Sep 2024", "No. Tickets": 72},
     {"No.": 10, "Terminal": "MOJ010", "Location": "South Banha", "First Operation": "2021-07-14", "Total Transactions": 2947, "Last CIT": "18 Jul 2024", "No. Tickets": 68},
     {"No.": 11, "Terminal": "MOJ011", "Location": "North Giza", "First Operation": "2021-05-07", "Total Transactions": 1255, "Last CIT": "31 Jan 2024", "No. Tickets": 41},
-    # Add the remaining machines...
+    {"No.": 12, "Terminal": "MOJ012", "Location": "Sharm El Sheikh", "First Operation": "2022-02-03", "Total Transactions": 554, "Last CIT": "7 Aug 2024", "No. Tickets": 16},
+    {"No.": 13, "Terminal": "MOJ013", "Location": "City Stars", "First Operation": "2021-12-20", "Total Transactions": 45, "Last CIT": "3 Apr 2024", "No. Tickets": 14},
+    {"No.": 14, "Terminal": "MOJ014", "Location": "Bank Misr Mohamed Farid", "First Operation": "2022-09-02", "Total Transactions": 46, "Last CIT": "28 Feb 2024", "No. Tickets": 5},
+    {"No.": 15, "Terminal": "MOJ015", "Location": "Hurghada", "First Operation": "2022-02-13", "Total Transactions": 285, "Last CIT": "17 Jan 2024", "No. Tickets": 16},
+    # Add the remaining machines here...
 ]
 
 # DataFrame and Down Machines
@@ -67,12 +71,24 @@ if st.session_state.page == "dashboard":
 if st.session_state.page == "details":
     selected_machine = st.session_state.selected_machine
     machine = machine_data[machine_data["Terminal"] == selected_machine].iloc[0]
-    st.title(f"Details: {selected_machine}")
+    card_color = "#d4edda" if selected_machine not in down_machines else "#f8d7da"
+    border_color = "red" if selected_machine in down_machines else "#ccc"
 
-    # Machine Details
-    st.subheader("Machine Information")
-    for col, value in machine.items():
-        st.write(f"**{col}:** {value}")
+    st.title(f"Details for {selected_machine}")
+    st.markdown(
+        f"""
+        <div style="border: 2px solid {border_color}; border-radius: 8px; padding: 20px; background-color: {card_color};">
+            <strong>Location:</strong> {machine['Location']}<br>
+            <strong>Terminal:</strong> {machine['Terminal']}<br>
+            <strong>Status:</strong> {"Up" if selected_machine not in down_machines else "Down"}<br>
+            <strong>First Operation:</strong> {machine['First Operation']}<br>
+            <strong>Total Transactions:</strong> {machine['Total Transactions']}<br>
+            <strong>Last CIT:</strong> {machine['Last CIT']}<br>
+            <strong>No. Tickets:</strong> {machine['No. Tickets']}<br>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Comments Section
     st.subheader("Comments")
