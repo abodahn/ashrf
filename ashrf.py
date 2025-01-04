@@ -23,7 +23,12 @@ data = [
     {"No.": 13, "Terminal": "MOJ013", "Location": "City Stars", "First Operation": "2021-12-20", "Total Transactions": 45, "Last CIT": "3 Apr 2024", "No. Tickets": 14},
     {"No.": 14, "Terminal": "MOJ014", "Location": "Bank Misr Mohamed Farid", "First Operation": "2022-09-02", "Total Transactions": 46, "Last CIT": "28 Feb 2024", "No. Tickets": 5},
     {"No.": 15, "Terminal": "MOJ015", "Location": "Hurghada", "First Operation": "2022-02-13", "Total Transactions": 285, "Last CIT": "17 Jan 2024", "No. Tickets": 16},
-    # Add the rest of the data as per your requirement
+    {"No.": 16, "Terminal": "MOJ016", "Location": "Luxor", "First Operation": "2022-02-14", "Total Transactions": 6, "Last CIT": "7 Jul 2024", "No. Tickets": 9},
+    {"No.": 17, "Terminal": "MOJ017", "Location": "Sohag", "First Operation": "2022-02-15", "Total Transactions": 19181, "Last CIT": "28 Aug 2024", "No. Tickets": 154},
+    {"No.": 18, "Terminal": "MOJ018", "Location": "Al Minya", "First Operation": "2022-02-17", "Total Transactions": 6375, "Last CIT": "29 Aug 2024", "No. Tickets": 145},
+    {"No.": 19, "Terminal": "MOJ019", "Location": "PortSaid", "First Operation": "2022-03-13", "Total Transactions": 1743, "Last CIT": "24 Mar 2024", "No. Tickets": 27},
+    {"No.": 20, "Terminal": "MOJ020", "Location": "Ismaillia", "First Operation": "2022-03-14", "Total Transactions": 475, "Last CIT": "12 Aug 2024", "No. Tickets": 61},
+    # Continue adding the rest of the data here...
 ]
 
 # Convert hardcoded data into a Pandas DataFrame
@@ -52,14 +57,6 @@ else:
     # Machine Dashboard
     st.title("Machines Dashboard")
 
-    # Summary Section
-    total_machines = len(machine_data)
-    down_count = sum(machine_data['Terminal'].isin(down_machines))
-    up_count = total_machines - down_count
-    st.markdown(
-        f"**Total Machines:** {total_machines} | **Up Machines:** {up_count} | **Down Machines:** {down_count}"
-    )
-
     # Search Bar
     search_query = st.text_input("Search by Location or Terminal:")
     if search_query:
@@ -77,18 +74,21 @@ else:
         status = "Down" if machine_id in down_machines else "Up"
         card_color = "lightgreen" if status == "Up" else "salmon"
 
-        st.markdown(
-            f"""
-            <div style="border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin: 10px; background-color: {card_color};">
-                <h4>Location: {location}</h4>
-                <p><strong>Terminal ID:</strong> {machine_id}</p>
-                <p><strong>Status:</strong> {status}</p>
-                <a href="#" style="text-decoration: none;">View Details</a>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        if st.button(f"View Details: {machine_id}"):
+            st.session_state.selected_machine = machine_id
 
-    # Footer
-    st.write("---")
-    st.markdown("Powered by **MOJ Support System**")
+    # Machine Details Section
+    if "selected_machine" in st.session_state:
+        machine_id = st.session_state.selected_machine
+        machine = machine_data[machine_data["Terminal"] == machine_id].iloc[0]
+        st.markdown(f"### Details for {machine_id}")
+        for col, value in machine.items():
+            st.write(f"**{col}:** {value}")
+        new_comment = st.text_area(f"Add Comment for {machine_id}")
+        if st.button(f"Submit Comment for {machine_id}"):
+            comments[machine_id] = comments.get(machine_id, [])
+            comments[machine_id].append(new_comment)
+            st.success("Comment added successfully!")
+        st.markdown("### Comments")
+        for comment in comments.get(machine_id, []):
+            st.write(f"- {comment}")
