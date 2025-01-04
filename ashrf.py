@@ -13,6 +13,12 @@ data = [
     {"No.": 3, "Terminal": "MOJ003", "Location": "North Cairo", "First Operation": "2021-05-20", "Total Transactions": 8876, "Last CIT": "19 Aug 2024", "No. Tickets": 43},
     {"No.": 4, "Terminal": "MOJ004", "Location": "East Alex", "First Operation": "2021-06-26", "Total Transactions": 0, "Last CIT": "16 Sep 2024", "No. Tickets": 91},
     {"No.": 5, "Terminal": "MOJ005", "Location": "West Alex", "First Operation": "2021-06-21", "Total Transactions": 244, "Last CIT": "10 Feb 2024", "No. Tickets": 44},
+    {"No.": 6, "Terminal": "MOJ006", "Location": "North Damanhour", "First Operation": "2021-06-26", "Total Transactions": 6203, "Last CIT": "9 Sep 2024", "No. Tickets": 146},
+    {"No.": 7, "Terminal": "MOJ007", "Location": "High Court", "First Operation": "2021-10-07", "Total Transactions": 964, "Last CIT": "27 May 2024", "No. Tickets": 26},
+    {"No.": 8, "Terminal": "MOJ008", "Location": "South Giza", "First Operation": "2021-06-28", "Total Transactions": 2335, "Last CIT": "20 May 2024", "No. Tickets": 41},
+    {"No.": 9, "Terminal": "MOJ009", "Location": "North Banha", "First Operation": "2021-07-14", "Total Transactions": 3520, "Last CIT": "11 Sep 2024", "No. Tickets": 72},
+    {"No.": 10, "Terminal": "MOJ010", "Location": "South Banha", "First Operation": "2021-07-14", "Total Transactions": 2947, "Last CIT": "18 Jul 2024", "No. Tickets": 68},
+    {"No.": 11, "Terminal": "MOJ011", "Location": "North Giza", "First Operation": "2021-05-07", "Total Transactions": 1255, "Last CIT": "31 Jan 2024", "No. Tickets": 41},
     # Add remaining machines here...
 ]
 
@@ -25,21 +31,13 @@ down_machines = {'MOJ015', 'MOJ018', 'MOJ021', 'MOJ023', 'MOJ024'}
 # Dictionary to store comments for each machine
 comments = {}
 
-# Login Page
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+# Navigation Functionality
+if "page" not in st.session_state:
+    st.session_state.page = "dashboard"
 
-if not st.session_state.authenticated:
-    st.title("MOJ Machine Monitoring System")
-    username = st.text_input("Username", placeholder="Enter username")
-    password = st.text_input("Password", type="password", placeholder="Enter password")
-    if st.button("Login"):
-        if username == MAIN_USERNAME and password == MAIN_PASSWORD:
-            st.session_state.authenticated = True
-        else:
-            st.error("Invalid credentials. Please try again.")
-else:
-    # Main Dashboard
+# Page Navigation
+if st.session_state.page == "dashboard":
+    # Dashboard Page
     st.title("Machines Dashboard")
 
     # Summary Section
@@ -75,32 +73,34 @@ else:
         card_color = "#d4edda" if status == "Up" else "#f8d7da"
 
         # Create a card for each machine
-        st.markdown(
-            f"""
-            <div style="border: 1px solid #ddd; border-radius: 10px; padding: 15px; margin: 10px 0; background-color: {card_color};">
-                <h4 style="margin: 0;">{location}</h4>
-                <p style="margin: 5px 0;"><strong>Terminal ID:</strong> {machine_id}</p>
-                <p style="margin: 5px 0;"><strong>Status:</strong> {status}</p>
-                <a href="?selected_machine={machine_id}" style="text-decoration: none; color: #007bff;">View Details</a>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        if st.button(f"View Details for {machine_id}", key=f"details_{machine_id}"):
+            st.session_state.page = "details"
+            st.session_state.selected_machine = machine_id
 
-    # Machine Details Section
-    selected_machine = st.experimental_get_query_params().get("selected_machine", [None])[0]
-    if selected_machine:
-        machine = machine_data[machine_data["Terminal"] == selected_machine].iloc[0]
-        st.subheader(f"Details for {selected_machine}")
-        st.write("### Machine Information")
-        for col, value in machine.items():
-            st.write(f"**{col}:** {value}")
-        st.write("### Add Comments")
-        new_comment = st.text_area(f"Add Comment for {selected_machine}")
-        if st.button(f"Submit Comment for {selected_machine}"):
-            comments[selected_machine] = comments.get(selected_machine, [])
-            comments[selected_machine].append(new_comment)
-            st.success("Comment added successfully!")
-        st.write("### Comments")
-        for comment in comments.get(selected_machine, []):
-            st.write(f"- {comment}")
+elif st.session_state.page == "details":
+    # Machine Details Page
+    machine_id = st.session_state.selected_machine
+    machine = machine_data[machine_data["Terminal"] == machine_id].iloc[0]
+    st.title(f"Details for {machine_id}")
+
+    # Display Machine Information
+    st.subheader("Machine Information")
+    for col, value in machine.items():
+        st.write(f"**{col}:** {value}")
+
+    # Add Comments Section
+    st.subheader("Add Comments")
+    new_comment = st.text_area(f"Add a Comment for {machine_id}")
+    if st.button("Submit Comment"):
+        comments[machine_id] = comments.get(machine_id, [])
+        comments[machine_id].append(new_comment)
+        st.success("Comment added successfully!")
+
+    # Display Comments
+    st.subheader("Comments")
+    for comment in comments.get(machine_id, []):
+        st.write(f"- {comment}")
+
+    # Back Button
+    if st.button("Back to Dashboard"):
+        st.session_state.page = "dashboard"
