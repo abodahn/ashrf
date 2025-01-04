@@ -17,7 +17,7 @@ down_machines = {'MOJ015', 'MOJ018', 'MOJ021', 'MOJ023', 'MOJ024'}
 # Dictionary to store comments for each machine
 comments = {}
 
-@st.cache
+@st.cache_data
 def load_machine_data():
     """Load machine data from GitHub Excel file."""
     try:
