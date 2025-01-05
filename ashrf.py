@@ -35,13 +35,6 @@ if st.session_state.page == "dashboard":
     col2.metric("Up Machines", up_count)
     col3.metric("Down Machines", down_count)
 
-    # Bar Chart for Summary
-    st.subheader("Machine Status Distribution")
-    status_data = pd.DataFrame(
-        {"Status": ["Up", "Down"], "Count": [up_count, down_count]}
-    )
-    st.bar_chart(status_data.set_index("Status"))
-
     # Search Bar
     st.subheader("Search Machines")
     search_query = st.text_input("Search by Location or Terminal:")
@@ -68,11 +61,13 @@ if st.session_state.page == "dashboard":
                     Terminal: {row['Terminal']}<br>
                     Status: <span style="color:{status_color}; font-weight:bold;">{"Up" if row["Terminal"] not in down_machines else "Down"}</span><br>
                     Comments: {comment_count}<br>
-                    <button onclick="window.location.href='/?machine={row['Terminal']}';">View Details</button>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+            if st.button(f"View Details", key=row["Terminal"]):
+                st.session_state.page = "details"
+                st.session_state.selected_machine = row["Terminal"]
 
 # Details Page
 if st.session_state.page == "details":
