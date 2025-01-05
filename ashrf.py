@@ -126,6 +126,19 @@ else:
         for key, value in machine.items():
             st.write(f"**{key}:** {value}")
 
+        # Update Machine Status
+        st.subheader("Update Machine Status")
+        current_status = "Down" if selected_terminal in down_machines else "Up"
+        new_status = st.radio("Change Status", ["Up", "Down"], index=0 if current_status == "Up" else 1)
+        if st.button("Update Status"):
+            if new_status == "Down":
+                down_machines.add(selected_terminal)
+            else:
+                down_machines.discard(selected_terminal)
+            st.session_state.data["down_machines"] = list(down_machines)
+            save_data(st.session_state.data)
+            st.success("Status updated successfully!")
+
         # Editable Fields
         st.subheader("Update Fields")
         new_tickets = st.number_input("Update No. Tickets", value=machine["No. Tickets"])
@@ -138,6 +151,23 @@ else:
             st.session_state.data["machines"] = machine_data.to_dict("records")
             save_data(st.session_state.data)
             st.success("Machine details updated successfully!")
+
+        # Comments Section
+        st.subheader("Comments")
+        new_comment = st.text_area("Add a Comment")
+        if st.button("Submit Comment"):
+            if selected_terminal not in comments:
+                comments[selected_terminal] = []
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            comments[selected_terminal].append(f"{timestamp}: {new_comment}")
+            st.session_state.data["comments"] = comments
+            save_data(st.session_state.data)
+            st.success("Comment added successfully!")
+
+        # Display Comments
+        st.subheader("Existing Comments")
+        for comment in comments.get(selected_terminal, []):
+            st.write(f"- {comment}")
 
         # Back to Dashboard
         if st.button("Back to Dashboard"):
