@@ -65,61 +65,46 @@ machine_data = pd.DataFrame(st.session_state.data["machines"])
 down_machines = set(st.session_state.data["down_machines"])
 comments = st.session_state.data["comments"]
 
-# Reset Button
+# Sidebar Reset Button
 if st.sidebar.button("Reset Data"):
     save_data(default_data)
     st.session_state.data = default_data
     st.success("Data has been reset!")
 
-# Initialize session state for login
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "page" not in st.session_state:
-    st.session_state.page = "login"
-if "selected_machine" not in st.session_state:
-    st.session_state.selected_machine = None
+# Dashboard
+st.title("📊 Machines Dashboard")
 
-# Login Page
-if st.session_state.page == "login":
-    st.title("🔒 Login")
-    username = st.text_input("Username", placeholder="Enter your username")
-    password = st.text_input("Password", type="password", placeholder="Enter your password")
-    if st.button("Login"):
-        if username == "admin" and password == "123":
-            st.success("Login successful!")
-            st.session_state.logged_in = True
-            st.session_state.page = "dashboard"
-        else:
-            st.error("Invalid username or password")
+# Summary Section
+st.subheader("Overview")
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Machines", len(machine_data))
+col2.metric("Up Machines", len(machine_data) - len(down_machines))
+col3.metric("Down Machines", len(down_machines))
 
-# Dashboard Page
-if st.session_state.logged_in and st.session_state.page == "dashboard":
-    st.title("📊 Machines Dashboard")
+# Search Bar
+search_query = st.text_input("Search by Location or Terminal")
+filtered_data = machine_data[
+    machine_data["Location"].str.contains(search_query, case=False, na=False)
+    | machine_data["Terminal"].str.contains(search_query, case=False, na=False)
+] if search_query else machine_data
 
-    # Summary Section
-    st.subheader("Overview")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Machines", len(machine_data))
-    col2.metric("Up Machines", len(machine_data) - len(down_machines))
-    col3.metric("Down Machines", len(down_machines))
-
-    # Search Bar
-    search_query = st.text_input("Search by Location or Terminal")
-    if search_query:
-        filtered_data = machine_data[
-            machine_data["Location"].str.contains(search_query, case=False, na=False)
-            | machine_data["Terminal"].str.contains(search_query, case=False, na=False)
-        ]
-    else:
-        filtered_data = machine_data
-
-    # Display Machines
-    for _, row in filtered_data.iterrows():
-        st.markdown(f"""
-            - **{row['Location']}**: {row['Terminal']}
-            - **Status**: {"Up" if row['Terminal'] not in down_machines else "Down"}
-        """)
-
-# Details Page
-if st.session_state.logged_in and st.session_state.page == "details":
-    st.write("Details page not implemented yet.")
+# Machines Grid
+st.subheader("Machine List")
+cols = st.columns(2)  # Two columns for displaying cards
+for index, row in filtered_data.iterrows():
+    col = cols[index % 2]
+    status_color = "green" if row["Terminal"] not in down_machines else "red"
+    with col:
+        st.markdown(
+            f"""
+            <div style="border: 1px solid #ddd; padding: 10px; margin: 5px; border-radius: 10px; background-color: #f9f9f9;">
+                <strong>{row['Location']}</strong><br>
+                Terminal: {row['Terminal']}<br>
+                Status: <span style="color:{status_color}; font-weight:bold;">{"Up" if row["Terminal"] not in down_machines else "Down"}</span><br>
+                Total Transactions: {row['Total Transactions']}<br>
+                Last CIT: {row['Last CIT']}<br>
+                Tickets: {row['No. Tickets']}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
