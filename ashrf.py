@@ -21,8 +21,9 @@ if "page" not in st.session_state:
 if "selected_machine" not in st.session_state:
     st.session_state.selected_machine = None
 
-# Dashboard Page
-if st.session_state.page == "dashboard":
+
+def dashboard():
+    """Render the dashboard page."""
     st.title("📊 Machines Dashboard")
 
     # Summary Section
@@ -61,12 +62,14 @@ if st.session_state.page == "dashboard":
         status_color = "green" if row["Terminal"] not in down_machines else "red"
         comment_count = len(comments.get(row["Terminal"], []))
         with col:
-            if st.button(f"View {row['Terminal']}", key=f"details_{row['Terminal']}"):
+            if st.button(f"View Details: {row['Terminal']}", key=f"view_{row['Terminal']}"):
                 st.session_state.page = "details"
                 st.session_state.selected_machine = row["Terminal"]
+                st.experimental_rerun()
 
-# Details Page
-if st.session_state.page == "details":
+
+def details():
+    """Render the details page."""
     selected_machine = st.session_state.selected_machine
     machine = machine_data[machine_data["Terminal"] == selected_machine].iloc[0]
 
@@ -102,3 +105,11 @@ if st.session_state.page == "details":
     # Back Button
     if st.button("Back to Dashboard"):
         st.session_state.page = "dashboard"
+        st.experimental_rerun()
+
+
+# Page Routing
+if st.session_state.page == "dashboard":
+    dashboard()
+elif st.session_state.page == "details":
+    details()
