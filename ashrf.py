@@ -16,6 +16,7 @@ default_data = {
     ],
     "down_machines": ["MOJ003", "MOJ004", "MOJ005"],
     "comments": {},
+    "files": {}
 }
 
 # User credentials
@@ -44,6 +45,8 @@ if "data" not in st.session_state:
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+if "username" not in st.session_state:
+    st.session_state.username = None
 
 if not st.session_state.logged_in:
     st.title("Login")
@@ -52,6 +55,7 @@ if not st.session_state.logged_in:
     if st.button("Login"):
         if username in credentials and credentials[username] == password:
             st.session_state.logged_in = True
+            st.session_state.username = username
             st.success(f"Welcome, {username}!")
         else:
             st.error("Invalid username or password.")
@@ -59,6 +63,7 @@ else:
     machine_data = pd.DataFrame(st.session_state.data["machines"])
     down_machines = set(st.session_state.data["down_machines"])
     comments = st.session_state.data["comments"]
+    files = st.session_state.data["files"]
 
     # Initialize session state for navigation
     if "page" not in st.session_state:
@@ -159,7 +164,7 @@ else:
             if selected_terminal not in comments:
                 comments[selected_terminal] = []
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            comments[selected_terminal].append(f"{timestamp}: {new_comment}")
+            comments[selected_terminal].append(f"{timestamp} ({st.session_state.username}): {new_comment}")
             st.session_state.data["comments"] = comments
             save_data(st.session_state.data)
             st.success("Comment added successfully!")
@@ -168,6 +173,23 @@ else:
         st.subheader("Existing Comments")
         for comment in comments.get(selected_terminal, []):
             st.write(f"- {comment}")
+
+        # File Upload
+        st.subheader("Attach Files")
+        uploaded_file = st.file_uploader("Upload a file")
+        if uploaded_file and st.button("Save File"):
+            if selected_terminal not in files:
+                files[selected_terminal] = []
+            file_name = uploaded_file.name
+            files[selected_terminal].append(file_name)
+            st.session_state.data["files"] = files
+            save_data(st.session_state.data)
+            st.success(f"File '{file_name}' uploaded successfully!")
+
+        # Display Attached Files
+        st.subheader("Attached Files")
+        for file in files.get(selected_terminal, []):
+            st.write(f"- {file}")
 
         # Back to Dashboard
         if st.button("Back to Dashboard"):
