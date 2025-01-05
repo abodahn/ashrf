@@ -6,10 +6,6 @@ import os
 
 # File for saving persistent data
 DATA_FILE = "machine_data.json"
-FILE_SAVE_PATH = r"D:\cvs application"  # Directory for saving uploaded files
-
-# Ensure the directory exists
-os.makedirs(FILE_SAVE_PATH, exist_ok=True)
 
 # Initial machine data
 default_data = {
@@ -19,8 +15,7 @@ default_data = {
         {"No.": 3, "Terminal": "MOJ003", "Location": "North Cairo", "First Operation": "2021-05-20", "Total Transactions": 8876, "Last CIT": "19 Aug 2024", "No. Tickets": 43},
     ],
     "down_machines": ["MOJ003", "MOJ004", "MOJ005"],
-    "comments": {},
-    "files": {}
+    "comments": {}
 }
 
 # User credentials
@@ -67,7 +62,6 @@ else:
     machine_data = pd.DataFrame(st.session_state.data["machines"])
     down_machines = set(st.session_state.data["down_machines"])
     comments = st.session_state.data["comments"]
-    files = st.session_state.data["files"]
 
     # Initialize session state for navigation
     if "page" not in st.session_state:
@@ -177,26 +171,6 @@ else:
         st.subheader("Existing Comments")
         for comment in comments.get(selected_terminal, []):
             st.write(f"- {comment}")
-
-        # File Upload
-        st.subheader("Attach Files")
-        uploaded_file = st.file_uploader("Upload a file")
-        if uploaded_file and st.button("Save File"):
-            if selected_terminal not in files:
-                files[selected_terminal] = []
-            file_name = uploaded_file.name
-            file_path = os.path.join(FILE_SAVE_PATH, file_name)
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            files[selected_terminal].append(file_name)
-            st.session_state.data["files"] = files
-            save_data(st.session_state.data)
-            st.success(f"File '{file_name}' uploaded successfully!")
-
-        # Display Attached Files
-        st.subheader("Attached Files")
-        for file in files.get(selected_terminal, []):
-            st.write(f"- {file}")
 
         # Back to Dashboard
         if st.button("Back to Dashboard"):
