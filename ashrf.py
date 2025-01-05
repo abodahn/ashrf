@@ -42,6 +42,7 @@ default_data = {
     ],
     "down_machines": ["MOJ003", "MOJ004", "MOJ005"],
     "comments": {},
+
 }
 
 # Load data from JSON file or initialize with defaults
