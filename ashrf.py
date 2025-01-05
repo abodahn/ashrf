@@ -15,7 +15,7 @@ default_data = {
         {"No.": 3, "Terminal": "MOJ003", "Location": "North Cairo", "First Operation": "2021-05-20", "Total Transactions": 8876, "Last CIT": "19 Aug 2024", "No. Tickets": 43},
     ],
     "down_machines": ["MOJ003", "MOJ004", "MOJ005"],
-    "comments": {}
+    "comments": {},
 }
 
 # User credentials
@@ -44,8 +44,6 @@ if "data" not in st.session_state:
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-if "username" not in st.session_state:
-    st.session_state.username = None
 
 if not st.session_state.logged_in:
     st.title("Login")
@@ -54,7 +52,6 @@ if not st.session_state.logged_in:
     if st.button("Login"):
         if username in credentials and credentials[username] == password:
             st.session_state.logged_in = True
-            st.session_state.username = username
             st.success(f"Welcome, {username}!")
         else:
             st.error("Invalid username or password.")
@@ -162,7 +159,7 @@ else:
             if selected_terminal not in comments:
                 comments[selected_terminal] = []
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            comments[selected_terminal].append(f"{timestamp} ({st.session_state.username}): {new_comment}")
+            comments[selected_terminal].append(f"{timestamp}: {new_comment}")
             st.session_state.data["comments"] = comments
             save_data(st.session_state.data)
             st.success("Comment added successfully!")
