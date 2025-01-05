@@ -6,6 +6,10 @@ import os
 
 # File for saving persistent data
 DATA_FILE = "machine_data.json"
+FILE_SAVE_PATH = r"D:\cvs application"  # Directory for saving uploaded files
+
+# Ensure the directory exists
+os.makedirs(FILE_SAVE_PATH, exist_ok=True)
 
 # Initial machine data
 default_data = {
@@ -181,6 +185,9 @@ else:
             if selected_terminal not in files:
                 files[selected_terminal] = []
             file_name = uploaded_file.name
+            file_path = os.path.join(FILE_SAVE_PATH, file_name)
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
             files[selected_terminal].append(file_name)
             st.session_state.data["files"] = files
             save_data(st.session_state.data)
