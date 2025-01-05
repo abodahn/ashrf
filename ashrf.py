@@ -11,13 +11,35 @@ DATA_FILE = "machine_data.json"
 default_data = {
     "machines": [
         {"No.": 1, "Terminal": "MOJ001", "Location": "Heliopolis", "First Operation": "2021-09-26", "Total Transactions": 0, "Last CIT": "19 Sep 2024", "No. Tickets": 109},
-        {"No.": 2, "Terminal": "MOJ002", "Location": "South Cairo", "First Operation": "2021-05-05", "Total Transactions": 1634, "Last CIT": "23 Jul 2024", "No. Tickets": 66},
-        {"No.": 3, "Terminal": "MOJ003", "Location": "North Cairo", "First Operation": "2021-05-20", "Total Transactions": 8876, "Last CIT": "19 Aug 2024", "No. Tickets": 43},
-        # Add all other machine data here (for brevity, shortened this example)
+        # Add other machine data here...
     ],
     "down_machines": ["MOJ003", "MOJ004", "MOJ005"],
     "comments": {},
 }
+
+# Custom CSS for background and styling
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background: url("https://www.mlt-uae.ae/assets/images/Group%202467.svg") no-repeat center center fixed;
+        background-size: cover;
+    }}
+    .css-1d391kg {{
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 10px;
+        padding: 20px;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Add a logo
+st.image("https://mlgroup.ae/assets/images/Group%202467.svg", use_column_width=True)
+
+# Title
+st.title("📊 Machines Dashboard")
 
 # Load data from JSON file or initialize with defaults
 def load_data():
@@ -54,9 +76,6 @@ if st.sidebar.button("Reset Data"):
 
 # Dashboard Page
 if st.session_state.page == "dashboard":
-    st.title("📊 Machines Dashboard")
-
-    # Summary Section
     st.subheader("Overview")
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Machines", len(machine_data))
@@ -72,7 +91,7 @@ if st.session_state.page == "dashboard":
 
     # Machines Grid
     st.subheader("Machine List")
-    cols = st.columns(2)  # Two columns for displaying cards
+    cols = st.columns(2)
     for index, row in filtered_data.iterrows():
         col = cols[index % 2]
         status_color = "green" if row["Terminal"] not in down_machines else "red"
