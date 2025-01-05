@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
 # Hardcoded data for machines
 data = [
@@ -105,10 +106,12 @@ if st.session_state.page == "details":
     if st.button("Submit Comment"):
         if selected_machine not in st.session_state.comments:
             st.session_state.comments[selected_machine] = []
-        st.session_state.comments[selected_machine].append(new_comment)
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        st.session_state.comments[selected_machine].append(f"{timestamp}: {new_comment}")
         st.success("Comment added successfully!")
 
     # Display Comments
+    st.write("### Existing Comments:")
     for comment in st.session_state.comments.get(selected_machine, []):
         st.write(f"- {comment}")
 
