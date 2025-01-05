@@ -15,18 +15,18 @@ machine_data = pd.DataFrame(data)
 down_machines = {"MOJ003", "MOJ004", "MOJ005"}
 comments = {}
 
-# Navigation State
+# Initialize session state for navigation and selection
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
 if "selected_machine" not in st.session_state:
     st.session_state.selected_machine = None
 
 
-def dashboard():
-    """Render the dashboard page."""
+def show_dashboard():
+    """Display the dashboard page."""
     st.title("📊 Machines Dashboard")
 
-    # Summary Section
+    # Overview metrics
     st.subheader("Overview")
     col1, col2, col3 = st.columns(3)
     total_machines = len(machine_data)
@@ -36,14 +36,14 @@ def dashboard():
     col2.metric("Up Machines", up_count)
     col3.metric("Down Machines", down_count)
 
-    # Bar Chart for Summary
+    # Bar chart for distribution
     st.subheader("Machine Status Distribution")
     status_data = pd.DataFrame(
         {"Status": ["Up", "Down"], "Count": [up_count, down_count]}
     )
     st.bar_chart(status_data.set_index("Status"))
 
-    # Search Bar
+    # Search functionality
     st.subheader("Search Machines")
     search_query = st.text_input("Search by Location or Terminal:")
     if search_query:
@@ -54,13 +54,12 @@ def dashboard():
     else:
         filtered_data = machine_data
 
-    # Machines Grid
+    # Machine list grid
     st.subheader("Machine List")
     cols = st.columns(2)
     for index, row in filtered_data.iterrows():
         col = cols[index % 2]
         status_color = "green" if row["Terminal"] not in down_machines else "red"
-        comment_count = len(comments.get(row["Terminal"], []))
         with col:
             if st.button(f"View Details: {row['Terminal']}", key=f"view_{row['Terminal']}"):
                 st.session_state.page = "details"
@@ -68,19 +67,19 @@ def dashboard():
                 st.experimental_rerun()
 
 
-def details():
-    """Render the details page."""
+def show_details():
+    """Display the details page for the selected machine."""
     selected_machine = st.session_state.selected_machine
     machine = machine_data[machine_data["Terminal"] == selected_machine].iloc[0]
 
     st.title(f"Details for {selected_machine}")
 
-    # Machine Details
+    # Machine details
     st.subheader("Machine Information")
     for key, value in machine.items():
         st.write(f"**{key}:** {value}")
 
-    # Change Status
+    # Change status
     st.subheader("Update Status")
     current_status = "Down" if selected_machine in down_machines else "Up"
     new_status = st.radio("Change Status", ["Up", "Down"], index=0 if current_status == "Up" else 1)
@@ -91,7 +90,7 @@ def details():
             down_machines.discard(selected_machine)
         st.success("Status updated successfully!")
 
-    # Comments Section
+    # Comments section
     st.subheader("Comments")
     new_comment = st.text_area("Add Comment")
     if st.button("Submit Comment"):
@@ -102,14 +101,14 @@ def details():
     for comment in comments.get(selected_machine, []):
         st.write(f"- {comment}")
 
-    # Back Button
+    # Back to dashboard
     if st.button("Back to Dashboard"):
         st.session_state.page = "dashboard"
         st.experimental_rerun()
 
 
-# Page Routing
+# Routing
 if st.session_state.page == "dashboard":
-    dashboard()
+    show_dashboard()
 elif st.session_state.page == "details":
-    details()
+    show_details()
