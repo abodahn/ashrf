@@ -10,14 +10,19 @@ data = [
     {"No.": 5, "Terminal": "MOJ005", "Location": "West Alex", "First Operation": "2021-06-21", "Total Transactions": 244, "Last CIT": "10 Feb 2024", "No. Tickets": 44},
 ]
 
-# DataFrame and Down Machines
-machine_data = pd.DataFrame(data)
-down_machines = {"MOJ003", "MOJ004", "MOJ005"}
-comments = {}
+# Initialize session state
+if "machine_data" not in st.session_state:
+    st.session_state.machine_data = pd.DataFrame(data)
 
-# Navigation State
+if "down_machines" not in st.session_state:
+    st.session_state.down_machines = {"MOJ003", "MOJ004", "MOJ005"}
+
+if "comments" not in st.session_state:
+    st.session_state.comments = {}
+
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
+
 if "selected_machine" not in st.session_state:
     st.session_state.selected_machine = None
 
@@ -28,8 +33,8 @@ if st.session_state.page == "dashboard":
     # Summary Section
     st.subheader("Overview")
     col1, col2, col3 = st.columns(3)
-    total_machines = len(machine_data)
-    down_count = len([m for m in machine_data["Terminal"] if m in down_machines])
+    total_machines = len(st.session_state.machine_data)
+    down_count = len(st.session_state.down_machines)
     up_count = total_machines - down_count
     col1.metric("Total Machines", total_machines)
     col2.metric("Up Machines", up_count)
@@ -39,27 +44,27 @@ if st.session_state.page == "dashboard":
     st.subheader("Search Machines")
     search_query = st.text_input("Search by Location or Terminal:")
     if search_query:
-        filtered_data = machine_data[
-            machine_data["Location"].str.contains(search_query, case=False, na=False)
-            | machine_data["Terminal"].str.contains(search_query, case=False, na=False)
+        filtered_data = st.session_state.machine_data[
+            st.session_state.machine_data["Location"].str.contains(search_query, case=False, na=False)
+            | st.session_state.machine_data["Terminal"].str.contains(search_query, case=False, na=False)
         ]
     else:
-        filtered_data = machine_data
+        filtered_data = st.session_state.machine_data
 
     # Machines Grid
     st.subheader("Machine List")
     cols = st.columns(2)
     for index, row in filtered_data.iterrows():
         col = cols[index % 2]
-        status_color = "green" if row["Terminal"] not in down_machines else "red"
-        comment_count = len(comments.get(row["Terminal"], []))
+        status_color = "green" if row["Terminal"] not in st.session_state.down_machines else "red"
+        comment_count = len(st.session_state.comments.get(row["Terminal"], []))
         with col:
             st.markdown(
                 f"""
                 <div style="border: 1px solid #ccc; padding: 10px; border-radius: 10px; background-color: #f9f9f9;">
                     <strong>{row['Location']}</strong><br>
                     Terminal: {row['Terminal']}<br>
-                    Status: <span style="color:{status_color}; font-weight:bold;">{"Up" if row["Terminal"] not in down_machines else "Down"}</span><br>
+                    Status: <span style="color:{status_color}; font-weight:bold;">{"Up" if row["Terminal"] not in st.session_state.down_machines else "Down"}</span><br>
                     Comments: {comment_count}<br>
                 </div>
                 """,
@@ -72,7 +77,9 @@ if st.session_state.page == "dashboard":
 # Details Page
 if st.session_state.page == "details":
     selected_machine = st.session_state.selected_machine
-    machine = machine_data[machine_data["Terminal"] == selected_machine].iloc[0]
+    machine = st.session_state.machine_data[
+        st.session_state.machine_data["Terminal"] == selected_machine
+    ].iloc[0]
 
     st.title(f"Details for {selected_machine}")
 
@@ -83,24 +90,26 @@ if st.session_state.page == "details":
 
     # Change Status
     st.subheader("Update Status")
-    current_status = "Down" if selected_machine in down_machines else "Up"
+    current_status = "Down" if selected_machine in st.session_state.down_machines else "Up"
     new_status = st.radio("Change Status", ["Up", "Down"], index=0 if current_status == "Up" else 1)
     if st.button("Update Status"):
         if new_status == "Down":
-            down_machines.add(selected_machine)
+            st.session_state.down_machines.add(selected_machine)
         else:
-            down_machines.discard(selected_machine)
+            st.session_state.down_machines.discard(selected_machine)
         st.success("Status updated successfully!")
 
     # Comments Section
     st.subheader("Comments")
     new_comment = st.text_area("Add Comment")
     if st.button("Submit Comment"):
-        comments[selected_machine] = comments.get(selected_machine, [])
-        comments[selected_machine].append(new_comment)
+        if selected_machine not in st.session_state.comments:
+            st.session_state.comments[selected_machine] = []
+        st.session_state.comments[selected_machine].append(new_comment)
         st.success("Comment added successfully!")
 
-    for comment in comments.get(selected_machine, []):
+    # Display Comments
+    for comment in st.session_state.comments.get(selected_machine, []):
         st.write(f"- {comment}")
 
     # Back Button
