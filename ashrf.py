@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 # Hardcoded data for machines
 data = [
@@ -38,16 +38,19 @@ if st.session_state.page == "dashboard":
 
     # Pie Chart for Summary
     st.subheader("Machine Status Distribution")
-    fig, ax = plt.subplots()
-    ax.pie(
-        [up_count, down_count],
-        labels=["Up", "Down"],
-        colors=["green", "red"],
-        autopct="%1.1f%%",
-        startangle=90,
+    pie_data = pd.DataFrame({
+        "Status": ["Up", "Down"],
+        "Count": [up_count, down_count],
+    })
+    fig = px.pie(
+        pie_data,
+        names="Status",
+        values="Count",
+        color="Status",
+        color_discrete_map={"Up": "green", "Down": "red"},
+        title="Machine Status Distribution",
     )
-    ax.axis("equal")
-    st.pyplot(fig)
+    st.plotly_chart(fig)
 
     # Search Bar
     st.subheader("Search Machines")
