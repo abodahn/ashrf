@@ -41,13 +41,56 @@ machine_data = pd.DataFrame(st.session_state.data["machines"])
 down_machines = set(st.session_state.data["down_machines"])
 comments = st.session_state.data["comments"]
 
-# Dashboard Page
+# Initialize session state for login
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 if "page" not in st.session_state:
-    st.session_state.page = "dashboard"
+    st.session_state.page = "login"
 if "selected_machine" not in st.session_state:
     st.session_state.selected_machine = None
 
-if st.session_state.page == "dashboard":
+# Login Page
+if st.session_state.page == "login":
+    st.title("🔒 Login")
+    st.markdown("""
+        <style>
+        .login-container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .login-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .login-button:hover {
+            background-color: #45a049;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="login-container">', unsafe_allow_html=True)
+    username = st.text_input("Username", placeholder="Enter your username")
+    password = st.text_input("Password", type="password", placeholder="Enter your password")
+    if st.button("Login", key="login_button", help="Click to login"):
+        if username == "admin" and password == "123":
+            st.success("Login successful!")
+            st.session_state.logged_in = True
+            st.session_state.page = "dashboard"
+        else:
+            st.error("Invalid username or password")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Dashboard Page
+if st.session_state.logged_in and st.session_state.page == "dashboard":
     st.title("📊 Machines Dashboard")
 
     # Summary Section
@@ -95,7 +138,7 @@ if st.session_state.page == "dashboard":
                 st.session_state.selected_machine = row["Terminal"]
 
 # Details Page
-if st.session_state.page == "details":
+if st.session_state.logged_in and st.session_state.page == "details":
     selected_machine = st.session_state.selected_machine
     machine = machine_data[machine_data["Terminal"] == selected_machine].iloc[0]
 
