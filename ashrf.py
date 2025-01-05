@@ -61,9 +61,18 @@ if st.session_state.page == "dashboard":
         status_color = "green" if row["Terminal"] not in down_machines else "red"
         comment_count = len(comments.get(row["Terminal"], []))
         with col:
-            if st.button(f"View Details: {row['Terminal']}", key=f"details_{row['Terminal']}"):
-                st.session_state.page = "details"
-                st.session_state.selected_machine = row["Terminal"]
+            st.markdown(
+                f"""
+                <div style="border: 1px solid #ccc; padding: 10px; border-radius: 10px; background-color: #f9f9f9;">
+                    <strong>{row['Location']}</strong><br>
+                    Terminal: {row['Terminal']}<br>
+                    Status: <span style="color:{status_color}; font-weight:bold;">{"Up" if row["Terminal"] not in down_machines else "Down"}</span><br>
+                    Comments: {comment_count}<br>
+                    <button onclick="window.location.href='/?machine={row['Terminal']}';">View Details</button>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 # Details Page
 if st.session_state.page == "details":
