@@ -15,18 +15,17 @@ machine_data = pd.DataFrame(data)
 down_machines = {"MOJ003", "MOJ004", "MOJ005"}
 comments = {}
 
-# Initialize session state for navigation and selection
+# Navigation State
 if "page" not in st.session_state:
     st.session_state.page = "dashboard"
 if "selected_machine" not in st.session_state:
     st.session_state.selected_machine = None
 
-
-def show_dashboard():
-    """Display the dashboard page."""
+# Dashboard Page
+if st.session_state.page == "dashboard":
     st.title("📊 Machines Dashboard")
 
-    # Overview metrics
+    # Summary Section
     st.subheader("Overview")
     col1, col2, col3 = st.columns(3)
     total_machines = len(machine_data)
@@ -36,14 +35,14 @@ def show_dashboard():
     col2.metric("Up Machines", up_count)
     col3.metric("Down Machines", down_count)
 
-    # Bar chart for distribution
+    # Bar Chart for Summary
     st.subheader("Machine Status Distribution")
     status_data = pd.DataFrame(
         {"Status": ["Up", "Down"], "Count": [up_count, down_count]}
     )
     st.bar_chart(status_data.set_index("Status"))
 
-    # Search functionality
+    # Search Bar
     st.subheader("Search Machines")
     search_query = st.text_input("Search by Location or Terminal:")
     if search_query:
@@ -54,32 +53,40 @@ def show_dashboard():
     else:
         filtered_data = machine_data
 
-    # Machine list grid
+    # Machines Grid
     st.subheader("Machine List")
     cols = st.columns(2)
     for index, row in filtered_data.iterrows():
         col = cols[index % 2]
         status_color = "green" if row["Terminal"] not in down_machines else "red"
+        comment_count = len(comments.get(row["Terminal"], []))
         with col:
-            if st.button(f"View Details: {row['Terminal']}", key=f"view_{row['Terminal']}"):
-                st.session_state.page = "details"
-                st.session_state.selected_machine = row["Terminal"]
-                st.experimental_rerun()
+            st.markdown(
+                f"""
+                <div style="border: 1px solid #ccc; padding: 10px; border-radius: 10px; background-color: #f9f9f9;">
+                    <strong>{row['Location']}</strong><br>
+                    Terminal: {row['Terminal']}<br>
+                    Status: <span style="color:{status_color}; font-weight:bold;">{"Up" if row["Terminal"] not in down_machines else "Down"}</span><br>
+                    Comments: {comment_count}<br>
+                    <button onclick="window.location.href='/?machine={row['Terminal']}';">View Details</button>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-
-def show_details():
-    """Display the details page for the selected machine."""
+# Details Page
+if st.session_state.page == "details":
     selected_machine = st.session_state.selected_machine
     machine = machine_data[machine_data["Terminal"] == selected_machine].iloc[0]
 
     st.title(f"Details for {selected_machine}")
 
-    # Machine details
+    # Machine Details
     st.subheader("Machine Information")
     for key, value in machine.items():
         st.write(f"**{key}:** {value}")
 
-    # Change status
+    # Change Status
     st.subheader("Update Status")
     current_status = "Down" if selected_machine in down_machines else "Up"
     new_status = st.radio("Change Status", ["Up", "Down"], index=0 if current_status == "Up" else 1)
@@ -90,7 +97,7 @@ def show_details():
             down_machines.discard(selected_machine)
         st.success("Status updated successfully!")
 
-    # Comments section
+    # Comments Section
     st.subheader("Comments")
     new_comment = st.text_area("Add Comment")
     if st.button("Submit Comment"):
@@ -101,14 +108,6 @@ def show_details():
     for comment in comments.get(selected_machine, []):
         st.write(f"- {comment}")
 
-    # Back to dashboard
+    # Back Button
     if st.button("Back to Dashboard"):
         st.session_state.page = "dashboard"
-        st.experimental_rerun()
-
-
-# Routing
-if st.session_state.page == "dashboard":
-    show_dashboard()
-elif st.session_state.page == "details":
-    show_details()
