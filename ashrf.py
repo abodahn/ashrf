@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 
@@ -8,7 +9,7 @@ data = [
     {"No.": 3, "Terminal": "MOJ003", "Location": "North Cairo", "First Operation": "2021-05-20", "Total Transactions": 8876, "Last CIT": "19 Aug 2024", "No. Tickets": 43},
     {"No.": 4, "Terminal": "MOJ004", "Location": "East Alex", "First Operation": "2021-06-26", "Total Transactions": 0, "Last CIT": "16 Sep 2024", "No. Tickets": 91},
     {"No.": 5, "Terminal": "MOJ005", "Location": "West Alex", "First Operation": "2021-06-21", "Total Transactions": 244, "Last CIT": "10 Feb 2024", "No. Tickets": 44},
-    # Add the remaining machines here...
+    # Add remaining machines here...
 ]
 
 # DataFrame and Down Machines
@@ -56,17 +57,9 @@ if st.session_state.page == "dashboard":
             else f"<span style='color:red;font-weight:bold;'>Down</span>"
         )
         with col:
-            st.markdown(
-                f"""
-                <div style="border: 2px solid #ccc; border-radius: 8px; padding: 15px; background-color: #f9f9f9; margin-bottom: 15px;">
-                    <strong>{row['Location']}</strong><br>
-                    Terminal: {row['Terminal']}<br>
-                    Status: {status_label}<br>
-                    <button onclick="window.location.href='/?machine={row['Terminal']}';">View Details</button>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            if st.button(f"View {row['Terminal']}", key=f"details_{row['Terminal']}"):
+                st.session_state.page = "details"
+                st.session_state.selected_machine = row["Terminal"]
 
 # Details Page
 if st.session_state.page == "details":
@@ -108,3 +101,9 @@ if st.session_state.page == "details":
     # Back to Dashboard
     if st.button("Back to Dashboard"):
         st.session_state.page = "dashboard"
+
+# Ensure Script is Run via Streamlit
+if __name__ == "__main__":
+    if not hasattr(st, "_is_running_with_streamlit"):
+        os.system(f"streamlit run {__file__}")
+        raise SystemExit
