@@ -1,174 +1,130 @@
 import streamlit as st
+import math
 import pandas as pd
-from datetime import datetime
-import json
-import os
+import requests
 
-# File for saving persistent data
-DATA_FILE = "machine_data.json"
+# Fleet data
+fleet = [
+    {"number_plate": "ABC123", "current_km": 12000, "fuel_efficiency": 15, "history": []},
+    {"number_plate": "XYZ789", "current_km": 8500, "fuel_efficiency": 12, "history": []},
+    {"number_plate": "LMN456", "current_km": 15000, "fuel_efficiency": 10, "history": []},
+    {"number_plate": "PQR321", "current_km": 7000, "fuel_efficiency": 14, "history": []},
+]
 
-# Initial machine data
-default_data = {
-    "machines": [
-        {"No.": 1, "Terminal": "MOJ001", "Location": "Heliopolis", "First Operation": "2021-09-26", "Total Transactions": 0, "Last CIT": "19 Sep 2024", "No. Tickets": 109},
-        {"No.": 2, "Terminal": "MOJ002", "Location": "South Cairo", "First Operation": "2021-05-05", "Total Transactions": 1634, "Last CIT": "23 Jul 2024", "No. Tickets": 66},
-        {"No.": 3, "Terminal": "MOJ003", "Location": "North Cairo", "First Operation": "2021-05-20", "Total Transactions": 8876, "Last CIT": "19 Aug 2024", "No. Tickets": 43},
-    ],
-    "down_machines": ["MOJ003", "MOJ004", "MOJ005"],
-    "comments": {},
-}
+# Driver data
+drivers = {"John Doe": [], "Jane Smith": []}
 
-# User credentials
-credentials = {
-    "admin": "123",
-    "ashraf": "1234",
-    "ahmed": "123456"
-}
+# Photon API endpoint
+PHOTON_API_URL = "https://photon.komoot.io/api/"
 
-# Load data from JSON file or initialize with defaults
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as file:
-            return json.load(file)
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # Radius of the Earth in km
+    d_lat = math.radians(lat2 - lat1)
+    d_lon = math.radians(lon2 - lon1)
+    a = math.sin(d_lat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+
+def resolve_place_to_coords(place_name):
+    if not place_name or len(place_name.strip()) == 0:
+        return None
+    params = {"q": place_name}
+    response = requests.get(PHOTON_API_URL, params=params)
+    if response.status_code == 200:
+        try:
+            results = response.json()
+            if results["features"]:
+                coords = results["features"][0]["geometry"]["coordinates"]
+                return float(coords[1]), float(coords[0])  # Photon returns [lon, lat]
+        except (requests.exceptions.JSONDecodeError, KeyError):
+            pass
+    return None
+
+
+# Streamlit app
+st.title("Fleet Manager")
+
+# Input form
+with st.form("add_trip_form"):
+    st.subheader("Add a Trip")
+    number_plate = st.selectbox("Select Number Plate", [car["number_plate"] for car in fleet])
+    start_location = st.text_input("Start Location")
+    end_location = st.text_input("End Location")
+    driver_name = st.selectbox("Select Driver", list(drivers.keys()))
+    submitted = st.form_submit_button("Add Move")
+
+if submitted:
+    start_coords = resolve_place_to_coords(start_location)
+    end_coords = resolve_place_to_coords(end_location)
+
+    if not start_coords or not end_coords:
+        st.error("Invalid locations. Please check your input.")
     else:
-        return default_data
+        start_lat, start_lon = start_coords
+        end_lat, end_lon = end_coords
 
-# Save data to JSON file
-def save_data(data):
-    with open(DATA_FILE, "w") as file:
-        json.dump(data, file)
+        # Calculate distance
+        distance = haversine(start_lat, start_lon, end_lat, end_lon)
 
-# Load data into session state
-if "data" not in st.session_state:
-    st.session_state.data = load_data()
+        # Find the car
+        for car in fleet:
+            if car["number_plate"] == number_plate:
+                car["history"].insert(0, {
+                    "start": start_location,
+                    "end": end_location,
+                    "distance": round(distance, 2),
+                    "driver": driver_name
+                })
+                car["current_km"] += round(distance, 2)
+                car["history"] = car["history"][:10]  # Keep last 10 moves
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+                # Fuel cost calculation
+                fuel_cost = (distance / car["fuel_efficiency"]) * 3.5  # Example fuel price
+                if driver_name in drivers:
+                    drivers[driver_name].append({
+                        "number_plate": number_plate,
+                        "route": f"{start_location} → {end_location}",
+                        "distance": round(distance, 2),
+                        "fuel_cost": round(fuel_cost, 2)
+                    })
 
-if not st.session_state.logged_in:
-    st.title("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if username in credentials and credentials[username] == password:
-            st.session_state.logged_in = True
-            st.success(f"Welcome, {username}!")
-        else:
-            st.error("Invalid username or password.")
-else:
-    machine_data = pd.DataFrame(st.session_state.data["machines"])
-    down_machines = set(st.session_state.data["down_machines"])
-    comments = st.session_state.data["comments"]
+                st.success(f"Trip added for {number_plate}.")
 
-    # Initialize session state for navigation
-    if "page" not in st.session_state:
-        st.session_state.page = "dashboard"
-    if "selected_machine" not in st.session_state:
-        st.session_state.selected_machine = None
+# Dashboard
+st.subheader("Dashboard")
+total_distance_today = sum([trip["distance"] for driver in drivers.values() for trip in driver])
+top_driver = max(drivers.items(), key=lambda x: sum([trip["distance"] for trip in x[1]]), default=None)
 
-    # Sidebar Reset Button
-    if st.sidebar.button("Reset Data"):
-        save_data(default_data)
-        st.session_state.data = default_data
-        st.success("Data has been reset!")
+st.metric("Total Distance Today", f"{total_distance_today:.2f} km")
+st.metric("Top Driver", top_driver[0] if top_driver else "None")
 
-    # Dashboard Page
-    if st.session_state.page == "dashboard":
-        st.title("📊 Machines Dashboard")
+# Fleet details
+st.subheader("Fleet Details")
+for car in fleet:
+    st.write(f"**Number Plate:** {car['number_plate']}")
+    st.write(f"**Current KM:** {car['current_km']}")
+    st.write("**Last 10 Moves:**")
+    if car["history"]:
+        for move in car["history"]:
+            st.write(f"{move['start']} → {move['end']} ({move['distance']} km)")
+    else:
+        st.write("No moves recorded.")
 
-        # Summary Section
-        st.subheader("Overview")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Machines", len(machine_data))
-        col2.metric("Up Machines", len(machine_data) - len(down_machines))
-        col3.metric("Down Machines", len(down_machines))
+# Export history
+if st.button("Export Trip History"):
+    data = []
+    for car in fleet:
+        for move in car["history"]:
+            data.append({
+                "Number Plate": car["number_plate"],
+                "Driver": move.get("driver"),
+                "Start": move["start"],
+                "End": move["end"],
+                "Distance (km)": move["distance"]
+            })
 
-        # Search Bar
-        search_query = st.text_input("Search by Location or Terminal")
-        filtered_data = machine_data[
-            machine_data["Location"].str.contains(search_query, case=False, na=False)
-            | machine_data["Terminal"].str.contains(search_query, case=False, na=False)
-        ] if search_query else machine_data
-
-        # Machines Grid
-        st.subheader("Machine List")
-        cols = st.columns(2)  # Two columns for displaying cards
-        for index, row in filtered_data.iterrows():
-            col = cols[index % 2]
-            status_color = "green" if row["Terminal"] not in down_machines else "red"
-            with col:
-                st.markdown(
-                    f"""
-                    <div style="border: 1px solid #ddd; padding: 10px; margin: 5px; border-radius: 10px; background-color: #f9f9f9;">
-                        <strong>{row['Location']}</strong><br>
-                        Terminal: {row['Terminal']}<br>
-                        Status: <span style="color:{status_color}; font-weight:bold;">{"Up" if row["Terminal"] not in down_machines else "Down"}</span><br>
-                        Total Transactions: {row['Total Transactions']}<br>
-                        Last CIT: {row['Last CIT']}<br>
-                        Tickets: {row['No. Tickets']}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                if st.button(f"View Details: {row['Terminal']}", key=f"view_{row['Terminal']}"):
-                    st.session_state.selected_machine = row["Terminal"]
-                    st.session_state.page = "details"
-
-    # Details Page
-    if st.session_state.page == "details":
-        selected_terminal = st.session_state.selected_machine
-        machine = machine_data[machine_data["Terminal"] == selected_terminal].iloc[0]
-
-        st.title(f"Details for {selected_terminal}")
-
-        # Machine Details
-        st.subheader("Machine Information")
-        for key, value in machine.items():
-            st.write(f"**{key}:** {value}")
-
-        # Update Machine Status
-        st.subheader("Update Machine Status")
-        current_status = "Down" if selected_terminal in down_machines else "Up"
-        new_status = st.radio("Change Status", ["Up", "Down"], index=0 if current_status == "Up" else 1)
-        if st.button("Update Status"):
-            if new_status == "Down":
-                down_machines.add(selected_terminal)
-            else:
-                down_machines.discard(selected_terminal)
-            st.session_state.data["down_machines"] = list(down_machines)
-            save_data(st.session_state.data)
-            st.success("Status updated successfully!")
-
-        # Editable Fields
-        st.subheader("Update Fields")
-        new_tickets = st.number_input("Update No. Tickets", value=machine["No. Tickets"])
-        new_transactions = st.number_input("Update Total Transactions", value=machine["Total Transactions"])
-        new_cit = st.text_input("Update Last CIT", value=machine["Last CIT"])
-        if st.button("Save Updates"):
-            machine_data.loc[machine_data["Terminal"] == selected_terminal, "No. Tickets"] = new_tickets
-            machine_data.loc[machine_data["Terminal"] == selected_terminal, "Total Transactions"] = new_transactions
-            machine_data.loc[machine_data["Terminal"] == selected_terminal, "Last CIT"] = new_cit
-            st.session_state.data["machines"] = machine_data.to_dict("records")
-            save_data(st.session_state.data)
-            st.success("Machine details updated successfully!")
-
-        # Comments Section
-        st.subheader("Comments")
-        new_comment = st.text_area("Add a Comment")
-        if st.button("Submit Comment"):
-            if selected_terminal not in comments:
-                comments[selected_terminal] = []
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            comments[selected_terminal].append(f"{timestamp}: {new_comment}")
-            st.session_state.data["comments"] = comments
-            save_data(st.session_state.data)
-            st.success("Comment added successfully!")
-
-        # Display Comments
-        st.subheader("Existing Comments")
-        for comment in comments.get(selected_terminal, []):
-            st.write(f"- {comment}")
-
-        # Back to Dashboard
-        if st.button("Back to Dashboard"):
-            st.session_state.page = "dashboard"
+    df = pd.DataFrame(data)
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button("Download CSV", data=csv, file_name="trip_history.csv", mime="text/csv")
