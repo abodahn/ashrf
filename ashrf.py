@@ -26,6 +26,7 @@ def logout():
     st.session_state.authenticated = False
     st.session_state.user = None
     st.session_state.role = None
+    st.rerun()
 
 # Login Page
 def login_page():
@@ -37,7 +38,7 @@ def login_page():
     if st.button("Login"):
         if authenticate(username, password):
             st.success(f"Welcome, {username}!")
-            st.experimental_rerun()
+            st.rerun()  # ✅ Fixed the issue by using st.rerun()
         else:
             st.error("Invalid credentials. Try again.")
 
@@ -73,7 +74,7 @@ def dashboard_page():
             }
             st.session_state.tasks.append(new_task)
             st.success("Task added successfully!")
-            st.experimental_rerun()
+            st.rerun()
 
     # Filter and display tasks
     st.subheader("Task List")
@@ -88,7 +89,6 @@ def dashboard_page():
     # Logout button
     if st.button("Logout"):
         logout()
-        st.experimental_rerun()
 
 # App Execution
 if "authenticated" not in st.session_state:
