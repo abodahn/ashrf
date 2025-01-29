@@ -47,52 +47,62 @@ def logout():
     st.session_state.role = None
     st.rerun()
 
+# Delete Task Function (Only Admins can delete any task, Users can delete their own)
+def delete_task(task_index):
+    if st.session_state.role == "admin" or st.session_state.tasks[task_index]["User"] == st.session_state.user:
+        del st.session_state.tasks[task_index]
+        save_tasks()
+        st.success("Task deleted successfully!")
+        st.rerun()
+    else:
+        st.error("You don't have permission to delete this task.")
+
 # Login Page
 def login_page():
-    st.title("Field Support Tracker")
+    st.title("🔐 Field Support Tracker")
     
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    username = st.text_input("👤 Username")
+    password = st.text_input("🔑 Password", type="password")
     
-    if st.button("Login"):
+    if st.button("Login", use_container_width=True):
         if authenticate(username, password):
-            st.success(f"Welcome, {username}!")
+            st.success(f"✅ Welcome, {username}!")
             st.rerun()
         else:
-            st.error("Invalid credentials. Try again.")
+            st.error("❌ Invalid credentials. Try again.")
 
 # Dashboard Page
 def dashboard_page():
-    st.title(f"Dashboard - Welcome {st.session_state.user}")
+    st.title(f"📋 Dashboard - Welcome {st.session_state.user}")
 
     if st.session_state.role == "admin":
-        selected_user = st.selectbox("Filter by User", ["All Users"] + list(USERS.keys()))
+        selected_user = st.selectbox("👥 Filter by User", ["All Users"] + list(USERS.keys()))
     else:
         selected_user = st.session_state.user
 
-    st.subheader("Add Task")
+    st.subheader("➕ Add Task")
     with st.form("task_form"):
-        location = st.text_input("Location")
-        start_time = st.text_input("Start Time")
-        end_time = st.text_input("End Time")
-        description = st.text_input("Description")
-        status = st.text_input("Status")
-        comments = st.text_input("Comments")
+        location = st.text_input("📍 Location")
+        start_time = st.date_input("🕒 Start Date")
+        end_time = st.date_input("⏳ End Date")
+        description = st.text_area("📝 Description")
+        status = st.selectbox("📌 Status", ["Pending", "In Progress", "Completed"])
+        comments = st.text_area("💬 Comments")
         
-        submit_button = st.form_submit_button("Add Task")
+        submit_button = st.form_submit_button("✅ Add Task")
 
         if submit_button:
             new_task = {
                 "User": st.session_state.user,
                 "Location": location,
-                "Start Time": start_time,
-                "End Time": end_time,
+                "Start Time": start_time.strftime("%Y-%m-%d"),
+                "End Time": end_time.strftime("%Y-%m-%d"),
                 "Description": description,
                 "Status": status,
                 "Comments": comments
             }
             st.session_state.tasks.append(new_task)
-            save_tasks()  # Save to file for persistence
+            save_tasks()
             st.success("Task added successfully!")
             st.rerun()
 
@@ -104,13 +114,33 @@ def dashboard_page():
             if selected_user != "All Users":
                 df_tasks = df_tasks[df_tasks["User"] == selected_user]
         
-        st.subheader("Task List")
-        st.dataframe(df_tasks)
+        st.subheader("📌 Task List")
+        
+        # Display Task Table with Delete Buttons
+        for i, task in enumerate(df_tasks.to_dict(orient="records")):
+            with st.expander(f"📌 Task {i+1}: {task['Description']} - {task['Status']}"):
+                st.write(f"📍 **Location:** {task['Location']}")
+                st.write(f"🕒 **Start Time:** {task['Start Time']}")
+                st.write(f"⏳ **End Time:** {task['End Time']}")
+                st.write(f"📝 **Description:** {task['Description']}")
+                st.write(f"📌 **Status:** {task['Status']}")
+                st.write(f"💬 **Comments:** {task['Comments']}")
+
+                # Delete button (Only allow if admin or the owner)
+                if st.session_state.role == "admin" or task["User"] == st.session_state.user:
+                    if st.button(f"🗑️ Delete Task {i+1}", key=f"delete_{i}", use_container_width=True):
+                        delete_task(i)
+
+        # Status Pie Chart
+        st.subheader("📊 Task Status Overview")
+        status_counts = df_tasks["Status"].value_counts()
+        st.bar_chart(status_counts)
+
     else:
-        st.warning("No tasks available.")
+        st.warning("⚠️ No tasks available.")
 
     # Logout button
-    if st.button("Logout"):
+    if st.button("🚪 Logout", use_container_width=True):
         logout()
 
 # App Execution
