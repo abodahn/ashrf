@@ -12,7 +12,7 @@ UAE_USERS = {
 
 # Generate random 4-digit passwords for Egypt users
 EGYPT_USERS = {
-    "a.said": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
+    "a.said": {"password": "123", "role": "user", "country": "Egypt"},
     "m.tarras": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
     "ashraf": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
     "islam": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
