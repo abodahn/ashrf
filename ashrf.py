@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import os
 
 # Dummy user database
 USERS = {
@@ -8,9 +9,27 @@ USERS = {
     "khuram": {"password": "123", "role": "user"}
 }
 
-# Initialize task storage in session state
+TASK_FILE = "tasks.csv"  # File to store tasks
+
+# Function to load tasks from CSV file
+def load_tasks():
+    if os.path.exists(TASK_FILE):
+        return pd.read_csv(TASK_FILE).to_dict(orient="records")
+    return []
+
+# Function to save tasks to CSV file
+def save_tasks():
+    df = pd.DataFrame(st.session_state.tasks)
+    df.to_csv(TASK_FILE, index=False)
+
+# Initialize session state variables
 if "tasks" not in st.session_state:
-    st.session_state.tasks = []
+    st.session_state.tasks = load_tasks()  # Load existing tasks
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+    st.session_state.user = None
+    st.session_state.role = None
 
 # Authentication function
 def authenticate(username, password):
@@ -64,7 +83,7 @@ def dashboard_page():
 
         if submit_button:
             new_task = {
-                "User": st.session_state.user,  # Ensure "User" column exists
+                "User": st.session_state.user,
                 "Location": location,
                 "Start Time": start_time,
                 "End Time": end_time,
@@ -73,14 +92,14 @@ def dashboard_page():
                 "Comments": comments
             }
             st.session_state.tasks.append(new_task)
+            save_tasks()  # Save to file for persistence
             st.success("Task added successfully!")
             st.rerun()
 
-    # Ensure there is at least one task before creating the DataFrame
+    # Load tasks into DataFrame
     if len(st.session_state.tasks) > 0:
         df_tasks = pd.DataFrame(st.session_state.tasks)
 
-        # Ensure "User" column exists before filtering
         if "User" in df_tasks.columns:
             if selected_user != "All Users":
                 df_tasks = df_tasks[df_tasks["User"] == selected_user]
@@ -95,9 +114,6 @@ def dashboard_page():
         logout()
 
 # App Execution
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
 if not st.session_state.authenticated:
     login_page()
 else:
