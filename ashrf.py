@@ -4,7 +4,7 @@ import os
 
 # Dummy user database
 USERS = {
-    "admin": {"password": "123", "role": "admin"},
+    "Admin": {"password": "123", "role": "Admin"},
     "murhaf": {"password": "123", "role": "user"},
     "khuram": {"password": "123", "role": "user"}
 }
@@ -49,7 +49,7 @@ def logout():
 
 # Delete Task Function (Only Admins can delete any task, Users can delete their own)
 def delete_task(task_index):
-    if st.session_state.role == "admin" or st.session_state.tasks[task_index]["User"] == st.session_state.user:
+    if st.session_state.role == "Admin" or st.session_state.tasks[task_index]["User"] == st.session_state.user:
         del st.session_state.tasks[task_index]
         save_tasks()
         st.success("Task deleted successfully!")
@@ -75,7 +75,7 @@ def login_page():
 def dashboard_page():
     st.title(f"📋 Dashboard - Welcome {st.session_state.user}")
 
-    if st.session_state.role == "admin":
+    if st.session_state.role == "Admin":
         selected_user = st.selectbox("👥 Filter by User", ["All Users"] + list(USERS.keys()))
     else:
         selected_user = st.session_state.user
@@ -126,8 +126,8 @@ def dashboard_page():
                 st.write(f"📌 **Status:** {task['Status']}")
                 st.write(f"💬 **Comments:** {task['Comments']}")
 
-                # Delete button (Only allow if admin or the owner)
-                if st.session_state.role == "admin" or task["User"] == st.session_state.user:
+                # Delete button (Only allow if Admin or the owner)
+                if st.session_state.role == "Admin" or task["User"] == st.session_state.user:
                     if st.button(f"🗑️ Delete Task {i+1}", key=f"delete_{i}", use_container_width=True):
                         delete_task(i)
 
