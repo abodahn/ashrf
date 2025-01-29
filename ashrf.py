@@ -12,8 +12,8 @@ UAE_USERS = {
 
 # Generate random 4-digit passwords for Egypt users
 EGYPT_USERS = {
-    "a.said": {"password": "123", "role": "user", "country": "Egypt"},
-    "m.tarras": {"password":"1234", "role": "user", "country": "Egypt"},
+    "a.said": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
+    "m.tarras": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
     "ashraf": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
     "islam": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
     "youssef": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
@@ -28,17 +28,21 @@ TASK_FILE = "tasks.csv"  # File to store tasks
 # Function to load tasks from CSV file
 def load_tasks():
     if os.path.exists(TASK_FILE):
-        return pd.read_csv(TASK_FILE).to_dict(orient="records")
+        df = pd.read_csv(TASK_FILE)
+        if "Country" not in df.columns:
+            df["Country"] = "UAE"  # Default to UAE if country is missing
+        return df.to_dict(orient="records")
     return []
 
 # Function to save tasks to CSV file
 def save_tasks():
-    df = pd.DataFrame(st.session_state.tasks)
-    df.to_csv(TASK_FILE, index=False)
+    if len(st.session_state.tasks) > 0:
+        df = pd.DataFrame(st.session_state.tasks)
+        df.to_csv(TASK_FILE, index=False)
 
 # Initialize session state variables
 if "tasks" not in st.session_state:
-    st.session_state.tasks = load_tasks()  # Load existing tasks
+    st.session_state.tasks = load_tasks()
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -145,6 +149,10 @@ def dashboard_page():
     # Load tasks into DataFrame
     if len(st.session_state.tasks) > 0:
         df_tasks = pd.DataFrame(st.session_state.tasks)
+
+        # Ensure "Country" column exists before filtering
+        if "Country" not in df_tasks.columns:
+            df_tasks["Country"] = "UAE"  # Default all tasks to UAE if missing
 
         # Country-based filtering
         if st.session_state.role != "admin":
