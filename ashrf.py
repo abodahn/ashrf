@@ -8,11 +8,11 @@ USERS = {
     "khuram": {"password": "123", "role": "user"}
 }
 
-# In-memory task storage
+# Initialize task storage in session state
 if "tasks" not in st.session_state:
     st.session_state.tasks = []
 
-# Authentication logic
+# Authentication function
 def authenticate(username, password):
     if username in USERS and USERS[username]['password'] == password:
         st.session_state.user = username
@@ -38,7 +38,7 @@ def login_page():
     if st.button("Login"):
         if authenticate(username, password):
             st.success(f"Welcome, {username}!")
-            st.rerun()  # ✅ Fixed the issue by using st.rerun()
+            st.rerun()
         else:
             st.error("Invalid credentials. Try again.")
 
@@ -64,7 +64,7 @@ def dashboard_page():
 
         if submit_button:
             new_task = {
-                "User": st.session_state.user,
+                "User": st.session_state.user,  # Ensure "User" column exists
                 "Location": location,
                 "Start Time": start_time,
                 "End Time": end_time,
@@ -76,15 +76,19 @@ def dashboard_page():
             st.success("Task added successfully!")
             st.rerun()
 
-    # Filter and display tasks
-    st.subheader("Task List")
-    
-    df_tasks = pd.DataFrame(st.session_state.tasks)
+    # Ensure there is at least one task before creating the DataFrame
+    if len(st.session_state.tasks) > 0:
+        df_tasks = pd.DataFrame(st.session_state.tasks)
 
-    if selected_user != "All Users":
-        df_tasks = df_tasks[df_tasks["User"] == selected_user]
-
-    st.dataframe(df_tasks)
+        # Ensure "User" column exists before filtering
+        if "User" in df_tasks.columns:
+            if selected_user != "All Users":
+                df_tasks = df_tasks[df_tasks["User"] == selected_user]
+        
+        st.subheader("Task List")
+        st.dataframe(df_tasks)
+    else:
+        st.warning("No tasks available.")
 
     # Logout button
     if st.button("Logout"):
