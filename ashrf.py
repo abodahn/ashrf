@@ -1,13 +1,27 @@
 import streamlit as st
 import pandas as pd
 import os
+import random
 
 # Dummy user database
-USERS = {
-    "Admin": {"password": "123", "role": "Admin"},
-    "murhaf": {"password": "123", "role": "user"},
-    "khuram": {"password": "123", "role": "user"}
+UAE_USERS = {
+    "admin": {"password": "123", "role": "admin", "country": "both"},
+    "murhaf": {"password": "123", "role": "user", "country": "UAE"},
+    "khuram": {"password": "123", "role": "user", "country": "UAE"}
 }
+
+# Generate random 4-digit passwords for Egypt users
+EGYPT_USERS = {
+    "a.said": {"password": "123", "role": "user", "country": "Egypt"},
+    "m.tarras": {"password":"1234", "role": "user", "country": "Egypt"},
+    "ashraf": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
+    "islam": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
+    "youssef": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
+    "khaled": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"}
+}
+
+# Merge both user groups
+USERS = {**UAE_USERS, **EGYPT_USERS}
 
 TASK_FILE = "tasks.csv"  # File to store tasks
 
@@ -30,14 +44,17 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
     st.session_state.user = None
     st.session_state.role = None
+    st.session_state.country = None
 
 # Authentication function
-def authenticate(username, password):
+def authenticate(username, password, country):
     if username in USERS and USERS[username]['password'] == password:
-        st.session_state.user = username
-        st.session_state.role = USERS[username]['role']
-        st.session_state.authenticated = True
-        return True
+        if USERS[username]['country'] == country or USERS[username]['country'] == "both":
+            st.session_state.user = username
+            st.session_state.role = USERS[username]['role']
+            st.session_state.country = USERS[username]['country']
+            st.session_state.authenticated = True
+            return True
     return False
 
 # Logout function
@@ -45,11 +62,12 @@ def logout():
     st.session_state.authenticated = False
     st.session_state.user = None
     st.session_state.role = None
+    st.session_state.country = None
     st.rerun()
 
 # Delete Task Function (Only Admins can delete any task, Users can delete their own)
 def delete_task(task_index):
-    if st.session_state.role == "Admin" or st.session_state.tasks[task_index]["User"] == st.session_state.user:
+    if st.session_state.role == "admin" or st.session_state.tasks[task_index]["User"] == st.session_state.user:
         del st.session_state.tasks[task_index]
         save_tasks()
         st.success("Task deleted successfully!")
@@ -57,25 +75,27 @@ def delete_task(task_index):
     else:
         st.error("You don't have permission to delete this task.")
 
-# Login Page
+# Login Page with Country Selection
 def login_page():
-    st.title("🔐 Field Support Tracker")
+    st.title("🌍 Field Support Tracker")
+
+    country = st.radio("Select your country:", ["UAE", "Egypt"], horizontal=True)
     
     username = st.text_input("👤 Username")
     password = st.text_input("🔑 Password", type="password")
-    
+
     if st.button("Login", use_container_width=True):
-        if authenticate(username, password):
+        if authenticate(username, password, country):
             st.success(f"✅ Welcome, {username}!")
             st.rerun()
         else:
-            st.error("❌ Invalid credentials. Try again.")
+            st.error("❌ Invalid credentials or country mismatch.")
 
 # Dashboard Page
 def dashboard_page():
     st.title(f"📋 Dashboard - Welcome {st.session_state.user}")
 
-    if st.session_state.role == "Admin":
+    if st.session_state.role == "admin":
         selected_user = st.selectbox("👥 Filter by User", ["All Users"] + list(USERS.keys()))
     else:
         selected_user = st.session_state.user
@@ -88,7 +108,14 @@ def dashboard_page():
         description = st.text_area("📝 Description")
         status = st.selectbox("📌 Status", ["Pending", "In Progress", "Completed"])
         comments = st.text_area("💬 Comments")
-        
+
+        # Extra Fields for Egypt Users
+        moj_number = None
+        uploaded_file = None
+        if st.session_state.country == "Egypt":
+            moj_number = st.text_input("🆔 MOJ Number (Mandatory for Egypt)")
+            uploaded_file = st.file_uploader("📸 Upload Supporting Document")
+
         submit_button = st.form_submit_button("✅ Add Task")
 
         if submit_button:
@@ -99,8 +126,17 @@ def dashboard_page():
                 "End Time": end_time.strftime("%Y-%m-%d"),
                 "Description": description,
                 "Status": status,
-                "Comments": comments
+                "Comments": comments,
+                "Country": st.session_state.country
             }
+
+            # Only add MOJ and Image if Egypt user
+            if st.session_state.country == "Egypt":
+                if moj_number:
+                    new_task["MOJ Number"] = moj_number
+                if uploaded_file:
+                    new_task["Document"] = uploaded_file.name  # Save file name
+
             st.session_state.tasks.append(new_task)
             save_tasks()
             st.success("Task added successfully!")
@@ -110,13 +146,16 @@ def dashboard_page():
     if len(st.session_state.tasks) > 0:
         df_tasks = pd.DataFrame(st.session_state.tasks)
 
+        # Country-based filtering
+        if st.session_state.role != "admin":
+            df_tasks = df_tasks[df_tasks["Country"] == st.session_state.country]
+
         if "User" in df_tasks.columns:
             if selected_user != "All Users":
                 df_tasks = df_tasks[df_tasks["User"] == selected_user]
         
         st.subheader("📌 Task List")
-        
-        # Display Task Table with Delete Buttons
+
         for i, task in enumerate(df_tasks.to_dict(orient="records")):
             with st.expander(f"📌 Task {i+1}: {task['Description']} - {task['Status']}"):
                 st.write(f"📍 **Location:** {task['Location']}")
@@ -125,21 +164,18 @@ def dashboard_page():
                 st.write(f"📝 **Description:** {task['Description']}")
                 st.write(f"📌 **Status:** {task['Status']}")
                 st.write(f"💬 **Comments:** {task['Comments']}")
+                if "MOJ Number" in task:
+                    st.write(f"🆔 **MOJ Number:** {task['MOJ Number']}")
+                if "Document" in task:
+                    st.write(f"📸 **Uploaded Document:** {task['Document']}")
 
-                # Delete button (Only allow if Admin or the owner)
-                if st.session_state.role == "Admin" or task["User"] == st.session_state.user:
+                if st.session_state.role == "admin" or task["User"] == st.session_state.user:
                     if st.button(f"🗑️ Delete Task {i+1}", key=f"delete_{i}", use_container_width=True):
                         delete_task(i)
-
-        # Status Pie Chart
-        st.subheader("📊 Task Status Overview")
-        status_counts = df_tasks["Status"].value_counts()
-        st.bar_chart(status_counts)
 
     else:
         st.warning("⚠️ No tasks available.")
 
-    # Logout button
     if st.button("🚪 Logout", use_container_width=True):
         logout()
 
