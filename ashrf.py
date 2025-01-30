@@ -15,7 +15,7 @@ EMAIL_PASSWORD = "neyy gjxa cutv dswq"  # ✅ Your Google App Password
 # ✅ User Database with Emails
 UAE_USERS = {
     "admin": {"password": "123", "role": "admin", "country": "both", "email": "admin@example.com"},
-    "murhaf": {"password": "123", "role": "user", "country": "UAE", "email": "murhaf@example.com"},
+    "murhaf": {"password": "123", "role": "user", "country": "UAE", "email": "a.elgohary@mlgroup.ae"},
     "khuram": {"password": "123", "role": "user", "country": "UAE", "email": "khuram@example.com"}
 }
 
