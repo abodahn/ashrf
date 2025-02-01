@@ -138,7 +138,7 @@ def dashboard_page():
         start_time = st.date_input("🕒 Start Date")
         end_time = st.date_input("⏳ End Date")
         description = st.text_area("🗒️ Description")
-        status = st.selectbox("📌 Status", ["On hold", "In Progress", "Completed"])
+        status = st.selectbox("📌 Status", ["Pending", "In Progress", "Completed"])
         comments = st.text_area("💬 Comments")
 
         moj_number = None
@@ -195,7 +195,7 @@ def dashboard_page():
                     st.write(f"📸 **Document:** {task['Document']}")
 
                 with st.form(f"update_form_{index}"):
-                    new_status = st.selectbox("Update Status", ["On hold", "In Progress", "Completed"], index=["On hold", "In Progress", "Completed"].index(task.get('Status', 'On hold')))
+                    new_status = st.selectbox("Update Status", ["Pending", "In Progress", "Completed"], index=["Pending", "In Progress", "Completed"].index(task.get('Status', 'Pending')))
                     note = st.text_area("Add Note")
                     update_button = st.form_submit_button("Update Task")
                     if update_button:
