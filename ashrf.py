@@ -74,9 +74,9 @@ def logout():
 
 # Send Email Notification
 def send_email_notification(task, user_email):
-    subject = f"New Task Assigned to {task['User']}"
+    subject = f"New Task Assigned to {task['Assigned To']}"
     message = f"""
-    Hello {task['User']},
+    Hello {task['Assigned To']},
 
     A new task has been assigned to you:
 
@@ -109,7 +109,7 @@ def send_email_notification(task, user_email):
 
 # Delete Task Function
 def delete_task(index):
-    if st.session_state.role == "admin" or st.session_state.tasks[index]["User"] == st.session_state.user:
+    if st.session_state.role == "admin" or st.session_state.tasks[index]["Assigned To"] == st.session_state.user:
         del st.session_state.tasks[index]
         save_tasks()
         st.success("🗑️ Task deleted successfully!")
@@ -123,6 +123,11 @@ def dashboard_page():
 
     st.subheader("➕ Add Task")
     with st.form("task_form"):
+        if st.session_state.role == "admin":
+            assigned_to = st.selectbox("👥 Assign Task To", list(USERS.keys()))
+        else:
+            assigned_to = st.session_state.user
+
         location = st.text_input("📍 Location")
         start_time = st.date_input("🕒 Start Date")
         end_time = st.date_input("⏳ End Date")
@@ -133,7 +138,7 @@ def dashboard_page():
         # Extra Fields for Egypt Users
         moj_number = None
         uploaded_file = None
-        if st.session_state.country == "Egypt":
+        if USERS[assigned_to]["country"] == "Egypt":
             moj_number = st.text_input("🆔 MOJ Number (Mandatory for Egypt)")
             uploaded_file = st.file_uploader("📸 Upload Supporting Document")
 
@@ -141,23 +146,23 @@ def dashboard_page():
 
         if submit_button:
             new_task = {
-                "User": st.session_state.user,
+                "Assigned By": st.session_state.user,
+                "Assigned To": assigned_to,
                 "Location": location,
                 "Start Time": start_time.strftime("%Y-%m-%d"),
                 "End Time": end_time.strftime("%Y-%m-%d"),
                 "Description": description,
                 "Status": status,
                 "Comments": comments,
-                "Country": st.session_state.country
+                "Country": USERS[assigned_to]["country"]
             }
-            if st.session_state.country == "Egypt":
+            if USERS[assigned_to]["country"] == "Egypt":
                 new_task["MOJ Number"] = moj_number
                 new_task["Document"] = uploaded_file.name if uploaded_file else "No File"
 
             st.session_state.tasks.append(new_task)
             save_tasks()
-            send_email_notification(new_task, USERS[st.session_state.user]["email"])
-            st.success("Task added successfully!")
+            st.success(f"✅ Task assigned to {assigned_to}!")
             st.rerun()
 
     # Display Task List
@@ -165,12 +170,14 @@ def dashboard_page():
     if len(st.session_state.tasks) > 0:
         df_tasks = pd.DataFrame(st.session_state.tasks)
 
-        # Filter tasks by country unless admin
+        # Filter tasks for non-admins
         if st.session_state.role != "admin":
-            df_tasks = df_tasks[df_tasks["Country"] == st.session_state.country]
+            df_tasks = df_tasks[df_tasks["Assigned To"] == st.session_state.user]
 
         for index, task in enumerate(df_tasks.to_dict(orient="records")):
             with st.expander(f"📍 {task['Location']} - {task['Description']}"):
+                st.write(f"👥 **Assigned To:** {task['Assigned To']}")
+                st.write(f"👤 **Assigned By:** {task['Assigned By']}")
                 st.write(f"🕒 **Start Time:** {task['Start Time']}")
                 st.write(f"⏳ **End Time:** {task['End Time']}")
                 st.write(f"📌 **Status:** {task['Status']}")
@@ -180,8 +187,13 @@ def dashboard_page():
                 if "Document" in task:
                     st.write(f"📸 **Document:** {task['Document']}")
 
-                # Delete Button (Admins or Task Owner)
-                if st.session_state.role == "admin" or task["User"] == st.session_state.user:
+                # Send Email Button (Only Admins)
+                if st.session_state.role == "admin":
+                    if st.button(f"📧 Send Email to {task['Assigned To']}", key=f"email_{index}"):
+                        send_email_notification(task, USERS[task["Assigned To"]]["email"])
+
+                # Delete Button
+                if st.session_state.role == "admin" or task["Assigned To"] == st.session_state.user:
                     if st.button(f"🗑️ Delete Task", key=f"delete_{index}"):
                         delete_task(index)
     else:
