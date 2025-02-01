@@ -195,7 +195,11 @@ def dashboard_page():
                     st.write(f"📸 **Document:** {task['Document']}")
 
                 with st.form(f"update_form_{index}"):
-                    new_status = st.selectbox("Update Status", ["On hold", "In Progress", "Completed"], index=["On hold", "In Progress", "Completed"].index(task.get('Status', 'On hold')))
+                    status_options = ["On hold", "In Progress", "Completed"]
+                    current_status = task.get('Status', 'On hold')
+                    if current_status not in status_options:
+                        current_status = "On hold"
+                    new_status = st.selectbox("Update Status", status_options, index=status_options.index(current_status))
                     note = st.text_area("Add Note")
                     update_button = st.form_submit_button("Update Task")
                     if update_button:
