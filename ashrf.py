@@ -121,6 +121,17 @@ def delete_task(index):
     else:
         st.error("❌ You don't have permission to delete this task.")
 
+# Update Task Function
+def update_task(index, status, note):
+    if st.session_state.tasks[index].get("Assigned To") == st.session_state.user:
+        st.session_state.tasks[index]["Status"] = status
+        st.session_state.tasks[index]["Comments"] += f"\nNote: {note}"
+        save_tasks()
+        st.success("📊 Task updated successfully!")
+        st.rerun()
+    else:
+        st.error("❌ You don't have permission to update this task.")
+
 # Dashboard Page
 def dashboard_page():
     st.title(f"📋 Dashboard - Welcome {st.session_state.user}")
@@ -202,6 +213,15 @@ def dashboard_page():
                     st.write(f"🆔 **MOJ Number:** {task['MOJ Number']}")
                 if "Document" in task:
                     st.write(f"📸 **Document:** {task['Document']}")
+
+                # Update Task (For Assigned Users)
+                if assigned_to == st.session_state.user:
+                    with st.form(f"update_form_{index}"):
+                        new_status = st.selectbox("Update Status", ["Pending", "In Progress", "Completed"], index=["Pending", "In Progress", "Completed"].index(task.get('Status', 'Pending')))
+                        note = st.text_area("Add Note")
+                        update_button = st.form_submit_button("Update Task")
+                        if update_button:
+                            update_task(index, new_status, note)
 
                 # Send Email Button (Admins Only)
                 if st.session_state.role == "admin" and assigned_to in USERS:
