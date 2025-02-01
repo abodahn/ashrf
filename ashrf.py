@@ -2,55 +2,58 @@ import streamlit as st
 import pandas as pd
 import os
 import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-# Dummy user database
+# ✅ Gmail SMTP Configuration
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+EMAIL_SENDER = "ahmed.lgohary.am@gmail.com"
+EMAIL_PASSWORD = "neyy gjxa cutv dswq"
+
+# ✅ User Database with Emails
 UAE_USERS = {
-    "admin": {"password": "123", "role": "admin", "country": "both"},
-    "murhaf": {"password": "123", "role": "user", "country": "UAE"},
-    "khuram": {"password": "123", "role": "user", "country": "UAE"}
+    "admin": {"password": "123", "role": "admin", "country": "both", "email": "admin@example.com"},
+    "murhaf": {"password": "123", "role": "user", "country": "UAE", "email": "murhaf@example.com"},
+    "khuram": {"password": "123", "role": "user", "country": "UAE", "email": "khuram@example.com"}
 }
 
-# Generate random 4-digit passwords for Egypt users
 EGYPT_USERS = {
-    "a.said": {"password": "123", "role": "user", "country": "Egypt"},
-    "m.tarras": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
-    "ashraf": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
-    "islam": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
-    "youssef": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"},
-    "khaled": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt"}
+    "a.said": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt", "email": "asaid@example.com"},
+    "m.tarras": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt", "email": "mtarras@example.com"},
+    "ashraf": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt", "email": "ashraf@example.com"},
+    "islam": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt", "email": "islam@example.com"},
+    "youssef": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt", "email": "youssef@example.com"},
+    "khaled": {"password": str(random.randint(1000, 9999)), "role": "user", "country": "Egypt", "email": "khaled@example.com"}
 }
 
-# Merge both user groups
+# Merge UAE & Egypt users
 USERS = {**UAE_USERS, **EGYPT_USERS}
 
-TASK_FILE = "tasks.csv"  # File to store tasks
-
-# Function to load tasks from CSV file
+# ✅ Load Tasks from CSV
+TASK_FILE = "tasks.csv"
 def load_tasks():
     if os.path.exists(TASK_FILE):
-        df = pd.read_csv(TASK_FILE)
-        if "Country" not in df.columns:
-            df["Country"] = "UAE"  # Default to UAE if country is missing
-        return df.to_dict(orient="records")
+        return pd.read_csv(TASK_FILE).to_dict(orient="records")
     return []
 
-# Function to save tasks to CSV file
+# ✅ Save Tasks to CSV
 def save_tasks():
     if len(st.session_state.tasks) > 0:
         df = pd.DataFrame(st.session_state.tasks)
         df.to_csv(TASK_FILE, index=False)
 
-# Initialize session state variables
+# ✅ Initialize Session State
 if "tasks" not in st.session_state:
     st.session_state.tasks = load_tasks()
-
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
     st.session_state.user = None
     st.session_state.role = None
     st.session_state.country = None
 
-# Authentication function
+# ✅ Authentication Function
 def authenticate(username, password, country):
     if username in USERS and USERS[username]['password'] == password:
         if USERS[username]['country'] == country or USERS[username]['country'] == "both":
@@ -61,7 +64,7 @@ def authenticate(username, password, country):
             return True
     return False
 
-# Logout function
+# ✅ Logout Function
 def logout():
     st.session_state.authenticated = False
     st.session_state.user = None
@@ -69,40 +72,44 @@ def logout():
     st.session_state.country = None
     st.rerun()
 
-# Delete Task Function (Only Admins can delete any task, Users can delete their own)
-def delete_task(task_index):
-    if st.session_state.role == "admin" or st.session_state.tasks[task_index]["User"] == st.session_state.user:
-        del st.session_state.tasks[task_index]
-        save_tasks()
-        st.success("Task deleted successfully!")
-        st.rerun()
-    else:
-        st.error("You don't have permission to delete this task.")
+# ✅ Send Email Notification
+def send_email_notification(task, user_email):
+    subject = f"New Task Assigned to {task['User']}"
+    message = f"""
+    Hello {task['User']},
 
-# Login Page with Country Selection
-def login_page():
-    st.title("🌍 Field Support Tracker")
+    A new task has been assigned to you:
 
-    country = st.radio("Select your country:", ["UAE", "Egypt"], horizontal=True)
-    
-    username = st.text_input("👤 Username")
-    password = st.text_input("🔑 Password", type="password")
+    📍 Location: {task['Location']}
+    🕒 Start Time: {task['Start Time']}
+    ⏳ End Time: {task['End Time']}
+    📝 Description: {task['Description']}
+    📌 Status: {task['Status']}
+    💬 Comments: {task['Comments']}
+    🌍 Country: {task['Country']}
+    """
+    if "MOJ Number" in task:
+        message += f"🆔 MOJ Number: {task['MOJ Number']}\n"
 
-    if st.button("Login", use_container_width=True):
-        if authenticate(username, password, country):
-            st.success(f"✅ Welcome, {username}!")
-            st.rerun()
-        else:
-            st.error("❌ Invalid credentials or country mismatch.")
+    msg = MIMEMultipart()
+    msg["From"] = EMAIL_SENDER
+    msg["To"] = user_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(message, "plain"))
 
-# Dashboard Page
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_SENDER, user_email, msg.as_string())
+        server.quit()
+        st.success(f"📧 Email sent successfully to {user_email}!")
+    except Exception as e:
+        st.error(f"❌ Failed to send email: {e}")
+
+# ✅ Dashboard Page
 def dashboard_page():
     st.title(f"📋 Dashboard - Welcome {st.session_state.user}")
-
-    if st.session_state.role == "admin":
-        selected_user = st.selectbox("👥 Filter by User", ["All Users"] + list(USERS.keys()))
-    else:
-        selected_user = st.session_state.user
 
     st.subheader("➕ Add Task")
     with st.form("task_form"):
@@ -133,61 +140,34 @@ def dashboard_page():
                 "Comments": comments,
                 "Country": st.session_state.country
             }
-
-            # Only add MOJ and Image if Egypt user
             if st.session_state.country == "Egypt":
-                if moj_number:
-                    new_task["MOJ Number"] = moj_number
-                if uploaded_file:
-                    new_task["Document"] = uploaded_file.name  # Save file name
+                new_task["MOJ Number"] = moj_number
+                new_task["Document"] = uploaded_file.name if uploaded_file else "No File"
 
             st.session_state.tasks.append(new_task)
             save_tasks()
+            send_email_notification(new_task, USERS[st.session_state.user]["email"])
             st.success("Task added successfully!")
             st.rerun()
-
-    # Load tasks into DataFrame
-    if len(st.session_state.tasks) > 0:
-        df_tasks = pd.DataFrame(st.session_state.tasks)
-
-        # Ensure "Country" column exists before filtering
-        if "Country" not in df_tasks.columns:
-            df_tasks["Country"] = "UAE"  # Default all tasks to UAE if missing
-
-        # Country-based filtering
-        if st.session_state.role != "admin":
-            df_tasks = df_tasks[df_tasks["Country"] == st.session_state.country]
-
-        if "User" in df_tasks.columns:
-            if selected_user != "All Users":
-                df_tasks = df_tasks[df_tasks["User"] == selected_user]
-        
-        st.subheader("📌 Task List")
-
-        for i, task in enumerate(df_tasks.to_dict(orient="records")):
-            with st.expander(f"📌 Task {i+1}: {task['Description']} - {task['Status']}"):
-                st.write(f"📍 **Location:** {task['Location']}")
-                st.write(f"🕒 **Start Time:** {task['Start Time']}")
-                st.write(f"⏳ **End Time:** {task['End Time']}")
-                st.write(f"📝 **Description:** {task['Description']}")
-                st.write(f"📌 **Status:** {task['Status']}")
-                st.write(f"💬 **Comments:** {task['Comments']}")
-                if "MOJ Number" in task:
-                    st.write(f"🆔 **MOJ Number:** {task['MOJ Number']}")
-                if "Document" in task:
-                    st.write(f"📸 **Uploaded Document:** {task['Document']}")
-
-                if st.session_state.role == "admin" or task["User"] == st.session_state.user:
-                    if st.button(f"🗑️ Delete Task {i+1}", key=f"delete_{i}", use_container_width=True):
-                        delete_task(i)
-
-    else:
-        st.warning("⚠️ No tasks available.")
 
     if st.button("🚪 Logout", use_container_width=True):
         logout()
 
-# App Execution
+# ✅ Login Page
+def login_page():
+    st.title("🌍 Field Support Tracker")
+    country = st.radio("Select your country:", ["UAE", "Egypt"], horizontal=True)
+    username = st.text_input("👤 Username")
+    password = st.text_input("🔑 Password", type="password")
+
+    if st.button("Login", use_container_width=True):
+        if authenticate(username, password, country):
+            st.success(f"✅ Welcome, {username}!")
+            st.rerun()
+        else:
+            st.error("❌ Invalid credentials or country mismatch.")
+
+# ✅ Run Streamlit App
 if not st.session_state.authenticated:
     login_page()
 else:
