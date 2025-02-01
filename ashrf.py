@@ -113,24 +113,18 @@ def send_email_notification(task, user_email):
 
 # Delete Task Function
 def delete_task(index):
-    if st.session_state.role == "admin" or st.session_state.tasks[index].get("Assigned To") == st.session_state.user:
-        del st.session_state.tasks[index]
-        save_tasks()
-        st.success("🗑️ Task deleted successfully!")
-        st.rerun()
-    else:
-        st.error("❌ You don't have permission to delete this task.")
+    del st.session_state.tasks[index]
+    save_tasks()
+    st.success("🗑️ Task deleted successfully!")
+    st.rerun()
 
 # Update Task Function
 def update_task(index, status, note):
-    if st.session_state.tasks[index].get("Assigned To") == st.session_state.user:
-        st.session_state.tasks[index]["Status"] = status
-        st.session_state.tasks[index]["Comments"] += f"\nNote: {note}"
-        save_tasks()
-        st.success("📊 Task updated successfully!")
-        st.rerun()
-    else:
-        st.error("❌ You don't have permission to update this task.")
+    st.session_state.tasks[index]["Status"] = status
+    st.session_state.tasks[index]["Comments"] += f"\nNote: {note}"
+    save_tasks()
+    st.success("📊 Task updated successfully!")
+    st.rerun()
 
 # Dashboard Page
 def dashboard_page():
@@ -138,10 +132,7 @@ def dashboard_page():
 
     st.subheader("➕ Add Task")
     with st.form("task_form"):
-        if st.session_state.role == "admin":
-            assigned_to = st.selectbox("👥 Assign Task To", list(USERS.keys()))
-        else:
-            assigned_to = st.session_state.user
+        assigned_to = st.selectbox("👥 Assign Task To", list(USERS.keys()))
 
         location = st.text_input("📍 Location")
         start_time = st.date_input("🕒 Start Date")
@@ -150,7 +141,6 @@ def dashboard_page():
         status = st.selectbox("📌 Status", ["Pending", "In Progress", "Completed"])
         comments = st.text_area("💬 Comments")
 
-        # Extra Fields for Egypt Users
         moj_number = None
         uploaded_file = None
         if USERS[assigned_to]["country"] == "Egypt":
@@ -180,14 +170,9 @@ def dashboard_page():
             st.success(f"✅ Task assigned to {assigned_to}!")
             st.rerun()
 
-    # Display Task List
     st.subheader("📌 Task List")
     if len(st.session_state.tasks) > 0:
         df_tasks = pd.DataFrame(st.session_state.tasks)
-
-        # Filter tasks for non-admins
-        if st.session_state.role != "admin":
-            df_tasks = df_tasks[df_tasks.get("Assigned To", "") == st.session_state.user]
 
         for index, task in enumerate(df_tasks.to_dict(orient="records")):
             assigned_to = task.get('Assigned To', 'Unknown')
@@ -196,13 +181,8 @@ def dashboard_page():
             description = task.get('Description', 'No Description')
 
             with st.expander(f"📍 {location} - {description}"):
-                if assigned_to in USERS:
-                    st.write(f"👥 **Assigned To:** {assigned_to}")
-                    st.write(f"📞 **Contact Number:** {USERS[assigned_to].get('contact', 'N/A')}")
-                else:
-                    st.write(f"👥 **Assigned To:** Unknown")
-                    st.write(f"📞 **Contact Number:** N/A")
-                
+                st.write(f"👥 **Assigned To:** {assigned_to}")
+                st.write(f"📞 **Contact Number:** {USERS.get(assigned_to, {}).get('contact', 'N/A')}")
                 st.write(f"👤 **Assigned By:** {assigned_by}")
                 st.write(f"🕒 **Start Time:** {task.get('Start Time', 'N/A')}")
                 st.write(f"⏳ **End Time:** {task.get('End Time', 'N/A')}")
@@ -214,24 +194,18 @@ def dashboard_page():
                 if "Document" in task:
                     st.write(f"📸 **Document:** {task['Document']}")
 
-                # Update Task (For Assigned Users)
-                if assigned_to == st.session_state.user:
-                    with st.form(f"update_form_{index}"):
-                        new_status = st.selectbox("Update Status", ["Pending", "In Progress", "Completed"], index=["Pending", "In Progress", "Completed"].index(task.get('Status', 'Pending')))
-                        note = st.text_area("Add Note")
-                        update_button = st.form_submit_button("Update Task")
-                        if update_button:
-                            update_task(index, new_status, note)
+                with st.form(f"update_form_{index}"):
+                    new_status = st.selectbox("Update Status", ["Pending", "In Progress", "Completed"], index=["Pending", "In Progress", "Completed"].index(task.get('Status', 'Pending')))
+                    note = st.text_area("Add Note")
+                    update_button = st.form_submit_button("Update Task")
+                    if update_button:
+                        update_task(index, new_status, note)
 
-                # Send Email Button (Admins Only)
-                if st.session_state.role == "admin" and assigned_to in USERS:
-                    if st.button(f"📧 Send Email to {assigned_to}", key=f"email_{index}"):
-                        send_email_notification(task, USERS[assigned_to]["email"])
+                if st.button(f"📧 Send Email to {assigned_to}", key=f"email_{index}"):
+                    send_email_notification(task, USERS.get(assigned_to, {}).get("email", ""))
 
-                # Delete Button (Admins or Task Owner)
-                if st.session_state.role == "admin" or assigned_to == st.session_state.user:
-                    if st.button(f"🗑️ Delete Task", key=f"delete_{index}"):
-                        delete_task(index)
+                if st.button(f"🗑️ Delete Task", key=f"delete_{index}"):
+                    delete_task(index)
     else:
         st.warning("⚠️ No tasks available.")
 
