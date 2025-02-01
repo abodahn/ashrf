@@ -6,13 +6,13 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# ✅ Gmail SMTP Configuration
+# Gmail SMTP Configuration
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 EMAIL_SENDER = "ahmed.lgohary.am@gmail.com"
 EMAIL_PASSWORD = "neyy gjxa cutv dswq"
 
-# ✅ User Database with Emails
+# User Database with Emails
 UAE_USERS = {
     "admin": {"password": "123", "role": "admin", "country": "both", "email": "admin@example.com"},
     "murhaf": {"password": "123", "role": "user", "country": "UAE", "email": "murhaf@example.com"},
@@ -31,20 +31,20 @@ EGYPT_USERS = {
 # Merge UAE & Egypt users
 USERS = {**UAE_USERS, **EGYPT_USERS}
 
-# ✅ Load Tasks from CSV
+# Load Tasks from CSV
 TASK_FILE = "tasks.csv"
 def load_tasks():
     if os.path.exists(TASK_FILE):
         return pd.read_csv(TASK_FILE).to_dict(orient="records")
     return []
 
-# ✅ Save Tasks to CSV
+# Save Tasks to CSV
 def save_tasks():
     if len(st.session_state.tasks) > 0:
         df = pd.DataFrame(st.session_state.tasks)
         df.to_csv(TASK_FILE, index=False)
 
-# ✅ Initialize Session State
+# Initialize Session State
 if "tasks" not in st.session_state:
     st.session_state.tasks = load_tasks()
 if "authenticated" not in st.session_state:
@@ -53,7 +53,7 @@ if "authenticated" not in st.session_state:
     st.session_state.role = None
     st.session_state.country = None
 
-# ✅ Authentication Function
+# Authentication Function
 def authenticate(username, password, country):
     if username in USERS and USERS[username]['password'] == password:
         if USERS[username]['country'] == country or USERS[username]['country'] == "both":
@@ -64,7 +64,7 @@ def authenticate(username, password, country):
             return True
     return False
 
-# ✅ Logout Function
+# Logout Function
 def logout():
     st.session_state.authenticated = False
     st.session_state.user = None
@@ -72,7 +72,7 @@ def logout():
     st.session_state.country = None
     st.rerun()
 
-# ✅ Send Email Notification
+# Send Email Notification
 def send_email_notification(task, user_email):
     subject = f"New Task Assigned to {task['User']}"
     message = f"""
@@ -107,7 +107,17 @@ def send_email_notification(task, user_email):
     except Exception as e:
         st.error(f"❌ Failed to send email: {e}")
 
-# ✅ Dashboard Page
+# Delete Task Function
+def delete_task(index):
+    if st.session_state.role == "admin" or st.session_state.tasks[index]["User"] == st.session_state.user:
+        del st.session_state.tasks[index]
+        save_tasks()
+        st.success("🗑️ Task deleted successfully!")
+        st.rerun()
+    else:
+        st.error("❌ You don't have permission to delete this task.")
+
+# Dashboard Page
 def dashboard_page():
     st.title(f"📋 Dashboard - Welcome {st.session_state.user}")
 
@@ -150,10 +160,37 @@ def dashboard_page():
             st.success("Task added successfully!")
             st.rerun()
 
+    # Display Task List
+    st.subheader("📌 Task List")
+    if len(st.session_state.tasks) > 0:
+        df_tasks = pd.DataFrame(st.session_state.tasks)
+
+        # Filter tasks by country unless admin
+        if st.session_state.role != "admin":
+            df_tasks = df_tasks[df_tasks["Country"] == st.session_state.country]
+
+        for index, task in enumerate(df_tasks.to_dict(orient="records")):
+            with st.expander(f"📍 {task['Location']} - {task['Description']}"):
+                st.write(f"🕒 **Start Time:** {task['Start Time']}")
+                st.write(f"⏳ **End Time:** {task['End Time']}")
+                st.write(f"📌 **Status:** {task['Status']}")
+                st.write(f"💬 **Comments:** {task['Comments']}")
+                if "MOJ Number" in task:
+                    st.write(f"🆔 **MOJ Number:** {task['MOJ Number']}")
+                if "Document" in task:
+                    st.write(f"📸 **Document:** {task['Document']}")
+
+                # Delete Button (Admins or Task Owner)
+                if st.session_state.role == "admin" or task["User"] == st.session_state.user:
+                    if st.button(f"🗑️ Delete Task", key=f"delete_{index}"):
+                        delete_task(index)
+    else:
+        st.warning("⚠️ No tasks available.")
+
     if st.button("🚪 Logout", use_container_width=True):
         logout()
 
-# ✅ Login Page
+# Login Page
 def login_page():
     st.title("🌍 Field Support Tracker")
     country = st.radio("Select your country:", ["UAE", "Egypt"], horizontal=True)
@@ -167,7 +204,7 @@ def login_page():
         else:
             st.error("❌ Invalid credentials or country mismatch.")
 
-# ✅ Run Streamlit App
+# Run Streamlit App
 if not st.session_state.authenticated:
     login_page()
 else:
