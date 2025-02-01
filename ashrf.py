@@ -185,8 +185,13 @@ def dashboard_page():
             description = task.get('Description', 'No Description')
 
             with st.expander(f"📍 {location} - {description}"):
-                st.write(f"👥 **Assigned To:** {assigned_to}")
-                st.write(f"📞 **Contact Number:** {USERS[assigned_to].get('contact', 'N/A')}")
+                if assigned_to in USERS:
+                    st.write(f"👥 **Assigned To:** {assigned_to}")
+                    st.write(f"📞 **Contact Number:** {USERS[assigned_to].get('contact', 'N/A')}")
+                else:
+                    st.write(f"👥 **Assigned To:** Unknown")
+                    st.write(f"📞 **Contact Number:** N/A")
+                
                 st.write(f"👤 **Assigned By:** {assigned_by}")
                 st.write(f"🕒 **Start Time:** {task.get('Start Time', 'N/A')}")
                 st.write(f"⏳ **End Time:** {task.get('End Time', 'N/A')}")
@@ -199,7 +204,7 @@ def dashboard_page():
                     st.write(f"📸 **Document:** {task['Document']}")
 
                 # Send Email Button (Admins Only)
-                if st.session_state.role == "admin":
+                if st.session_state.role == "admin" and assigned_to in USERS:
                     if st.button(f"📧 Send Email to {assigned_to}", key=f"email_{index}"):
                         send_email_notification(task, USERS[assigned_to]["email"])
 
