@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import random
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -11,28 +12,27 @@ SMTP_PORT = 587
 EMAIL_SENDER = "ahmed.lgohary.am@gmail.com"
 EMAIL_PASSWORD = "neyy gjxa cutv dswq"
 
-# UAE User Database with Emails
+# User Database with Emails and Contact Numbers
 UAE_USERS = {
-    "admin": {"password": "123", "role": "admin", "country": "both", "email": "admin@example.com", "contact": "000-000-0000"},
-    "murhaf": {"password": "123", "role": "user", "country": "UAE", "email": "murhaf@example.com", "contact": "111-111-1111"},
-    "khuram": {"password": "123", "role": "user", "country": "UAE", "email": "khuram@example.com", "contact": "222-222-2222"}
+    "admin": {"password": "123", "role": "admin", "country": "both", "email": "admin@example.com", "contact": "0000"},
+    "murhaf": {"password": "123", "role": "user", "country": "UAE", "email": "murhaf@example.com", "contact": "1111"},
+    "khuram": {"password": "123", "role": "user", "country": "UAE", "email": "khuram@example.com", "contact": "2222"}
 }
 
-# Updated Egypt User Database
 EGYPT_USERS = {
-    "mohamed_abdulghaffar": {"password": "123", "role": "user", "country": "Egypt", "email": "mohamedhashish660@gmail.com", "contact": "0100 2905148"},
-    "youssef_taha": {"password": "123", "role": "user", "country": "Egypt", "email": "Youseftaha625@yahoo.com", "contact": "+20 106 0615876"},
-    "ahmed_fawky": {"password": "123", "role": "user", "country": "Egypt", "email": "ahmadfawky@gmail.com", "contact": "0102 3128386"},
-    "ahmed_said": {"password": "123", "role": "user", "country": "Egypt", "email": "ahmadsaid.eg40@gmail.com", "contact": "+20 111 7747737"},
-    "moustafa_mamdouh": {"password": "123", "role": "user", "country": "Egypt", "email": "moustafa.mamdoh96@gmail.com", "contact": "0100 4471647"},
-    "mohamed_ramadan": {"password": "123", "role": "user", "country": "Egypt", "email": "mohamedramadan1892@gmail.com", "contact": "0100 9837248"},
-    "islam_sobhi": {"password": "123", "role": "user", "country": "Egypt", "email": "islamsobhy582@gmail.com", "contact": "+20 101 7790515"},
-    "mohamed_korany": {"password": "123", "role": "user", "country": "Egypt", "email": "mokorany046@gmail.com", "contact": "0112 4705453"},
-    "hossam_mostafa": {"password": "123", "role": "user", "country": "Egypt", "email": "hossammostafa066@gmail.com", "contact": "+20 106 6114964"},
-    "amr_mahmoud": {"password": "123", "role": "user", "country": "Egypt", "email": "amr-mahmoud-87@hotmail.com", "contact": "0100 1027909"}
+    "m.abdulghaffar": {"password": "123", "role": "user", "country": "Egypt", "email": "mohamedhashish660@gmail.com", "contact": "0100 2905148"},
+    "y.taha": {"password": "123", "role": "user", "country": "Egypt", "email": "Youseftaha625@yahoo.com", "contact": "+20 106 0615876"},
+    "a.fawky": {"password": "123", "role": "user", "country": "Egypt", "email": "ahmadfawky@gmail.com", "contact": "0102 3128386"},
+    "a.said": {"password": "123", "role": "user", "country": "Egypt", "email": "ahmadsaid.eg40@gmail.com", "contact": "+20 111 7747737"},
+    "m.mamdouh": {"password": "123", "role": "user", "country": "Egypt", "email": "moustafa.mamdoh96@gmail.com", "contact": "0100 4471647"},
+    "m.ramadan": {"password": "123", "role": "user", "country": "Egypt", "email": "mohamedramadan1892@gmail.com", "contact": "0100 9837248"},
+    "i.sobhi": {"password": "123", "role": "user", "country": "Egypt", "email": "islamsobhy582@gmail.com", "contact": "+20 101 7790515"},
+    "m.korany": {"password": "123", "role": "user", "country": "Egypt", "email": "mokorany046@gmail.com", "contact": "0112 4705453"},
+    "h.mostafa": {"password": "123", "role": "user", "country": "Egypt", "email": "hossammostafa066@gmail.com", "contact": "+20 106 6114964"},
+    "a.mahmoud": {"password": "123", "role": "user", "country": "Egypt", "email": "amr-mahmoud-87@hotmail.com", "contact": "0100 1027909"}
 }
 
-# Merge UAE & Egypt Users
+# Merge UAE & Egypt users
 USERS = {**UAE_USERS, **EGYPT_USERS}
 
 # Load Tasks from CSV
@@ -64,8 +64,6 @@ def authenticate(username, password, country):
             st.session_state.user = username
             st.session_state.role = USERS[username]['role']
             st.session_state.country = USERS[username]['country']
-            st.session_state.email = USERS[username]['email']
-            st.session_state.contact = USERS[username]['contact']
             st.session_state.authenticated = True
             return True
     return False
@@ -89,12 +87,14 @@ def send_email_notification(task, user_email):
     📍 Location: {task.get('Location', 'N/A')}
     🕒 Start Time: {task.get('Start Time', 'N/A')}
     ⏳ End Time: {task.get('End Time', 'N/A')}
-    📝 Description: {task.get('Description', 'N/A')}
+    🗒️ Description: {task.get('Description', 'N/A')}
     📌 Status: {task.get('Status', 'N/A')}
     💬 Comments: {task.get('Comments', 'N/A')}
     🌍 Country: {task.get('Country', 'N/A')}
-    📞 Contact Number: {USERS[task.get('Assigned To', '')]['contact']}
     """
+    if "MOJ Number" in task:
+        message += f"🆔 MOJ Number: {task['MOJ Number']}\n"
+
     msg = MIMEMultipart()
     msg["From"] = EMAIL_SENDER
     msg["To"] = user_email
@@ -111,13 +111,19 @@ def send_email_notification(task, user_email):
     except Exception as e:
         st.error(f"❌ Failed to send email: {e}")
 
+# Delete Task Function
+def delete_task(index):
+    if st.session_state.role == "admin" or st.session_state.tasks[index].get("Assigned To") == st.session_state.user:
+        del st.session_state.tasks[index]
+        save_tasks()
+        st.success("🗑️ Task deleted successfully!")
+        st.rerun()
+    else:
+        st.error("❌ You don't have permission to delete this task.")
+
 # Dashboard Page
 def dashboard_page():
     st.title(f"📋 Dashboard - Welcome {st.session_state.user}")
-
-    st.subheader("👤 Your Info")
-    st.write(f"📧 **Email:** {st.session_state.email}")
-    st.write(f"📞 **Contact:** {st.session_state.contact}")
 
     st.subheader("➕ Add Task")
     with st.form("task_form"):
@@ -129,9 +135,16 @@ def dashboard_page():
         location = st.text_input("📍 Location")
         start_time = st.date_input("🕒 Start Date")
         end_time = st.date_input("⏳ End Date")
-        description = st.text_area("📝 Description")
+        description = st.text_area("🗒️ Description")
         status = st.selectbox("📌 Status", ["Pending", "In Progress", "Completed"])
         comments = st.text_area("💬 Comments")
+
+        # Extra Fields for Egypt Users
+        moj_number = None
+        uploaded_file = None
+        if USERS[assigned_to]["country"] == "Egypt":
+            moj_number = st.text_input("🆔 MOJ Number (Mandatory for Egypt)")
+            uploaded_file = st.file_uploader("📸 Upload Supporting Document")
 
         submit_button = st.form_submit_button("✅ Add Task")
 
@@ -147,20 +160,53 @@ def dashboard_page():
                 "Comments": comments,
                 "Country": USERS[assigned_to]["country"]
             }
+            if USERS[assigned_to]["country"] == "Egypt":
+                new_task["MOJ Number"] = moj_number
+                new_task["Document"] = uploaded_file.name if uploaded_file else "No File"
 
             st.session_state.tasks.append(new_task)
             save_tasks()
             st.success(f"✅ Task assigned to {assigned_to}!")
-            send_email_notification(new_task, USERS[assigned_to]["email"])
             st.rerun()
 
+    # Display Task List
     st.subheader("📌 Task List")
     if len(st.session_state.tasks) > 0:
         df_tasks = pd.DataFrame(st.session_state.tasks)
+
+        # Filter tasks for non-admins
         if st.session_state.role != "admin":
             df_tasks = df_tasks[df_tasks.get("Assigned To", "") == st.session_state.user]
 
-        st.dataframe(df_tasks)
+        for index, task in enumerate(df_tasks.to_dict(orient="records")):
+            assigned_to = task.get('Assigned To', 'Unknown')
+            assigned_by = task.get('Assigned By', 'Unknown')
+            location = task.get('Location', 'No Location')
+            description = task.get('Description', 'No Description')
+
+            with st.expander(f"📍 {location} - {description}"):
+                st.write(f"👥 **Assigned To:** {assigned_to}")
+                st.write(f"📞 **Contact Number:** {USERS[assigned_to].get('contact', 'N/A')}")
+                st.write(f"👤 **Assigned By:** {assigned_by}")
+                st.write(f"🕒 **Start Time:** {task.get('Start Time', 'N/A')}")
+                st.write(f"⏳ **End Time:** {task.get('End Time', 'N/A')}")
+                st.write(f"📌 **Status:** {task.get('Status', 'N/A')}")
+                st.write(f"💬 **Comments:** {task.get('Comments', 'N/A')}")
+
+                if "MOJ Number" in task:
+                    st.write(f"🆔 **MOJ Number:** {task['MOJ Number']}")
+                if "Document" in task:
+                    st.write(f"📸 **Document:** {task['Document']}")
+
+                # Send Email Button (Admins Only)
+                if st.session_state.role == "admin":
+                    if st.button(f"📧 Send Email to {assigned_to}", key=f"email_{index}"):
+                        send_email_notification(task, USERS[assigned_to]["email"])
+
+                # Delete Button (Admins or Task Owner)
+                if st.session_state.role == "admin" or assigned_to == st.session_state.user:
+                    if st.button(f"🗑️ Delete Task", key=f"delete_{index}"):
+                        delete_task(index)
     else:
         st.warning("⚠️ No tasks available.")
 
